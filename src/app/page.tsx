@@ -1,9 +1,5 @@
-import { Button } from '@/components/ui/button';
+import HomePage from "./(public)/(marketing)/home-page";
 
 export default function Home() {
-  return (
-    <div>
-      <Button>Clieck</Button>
-    </div>
-  );
+  return <HomePage />;
 }
