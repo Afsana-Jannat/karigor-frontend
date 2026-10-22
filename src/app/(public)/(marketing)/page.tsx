@@ -1,7 +1,5 @@
-export default function HomePage() {
-  return (
-    <div>
-      <h1>home page</h1>
-    </div>
-  );
+import HomePage from "./home-page";
+
+export default function MarketingHomePage() {
+  return <HomePage />;
 }
