@@ -12,7 +12,6 @@ import {
   getJobOptions,
   type JobOption,
 } from "@/lib/jobs";
-import HomePageNav from "../../home-page-nav";
 
 function dateToInputValue(date: Date) {
   const year = date.getFullYear();
@@ -113,7 +112,7 @@ export default function NewJobPage() {
 
   return (
     <main className="min-h-screen bg-[#f8fafc] text-slate-900">
-      <HomePageNav />
+     
       <section className="relative isolate min-h-[calc(100vh-72px)] overflow-hidden py-10 sm:py-14">
         <div className="pointer-events-none absolute -right-40 -top-32 -z-10 size-120 rounded-full bg-orange-100/50 blur-3xl" />
         <div className="mx-auto max-w-3xl px-5 sm:px-8">

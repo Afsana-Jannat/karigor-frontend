@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Inter } from "next/font/google";
+import { Geist_Mono, Noto_Sans_Bengali } from "next/font/google";
+import { Toaster } from "sonner";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import Providers from "@/providers";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+// Bangla needs the bengali subset. This is the main font of the site.
+const notoSansBengali = Noto_Sans_Bengali({
+  subsets: ["bengali", "latin"],
+  weight: ["400", "500", "600", "700", "800", "900"],
+  variable: "--font-sans",
+  display: "swap",
 });
 
 const geistMono = Geist_Mono({
@@ -29,17 +31,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={cn(
         "h-full",
         "antialiased",
-        geistSans.variable,
+        notoSansBengali.variable,
         geistMono.variable,
         "font-sans",
-        inter.variable,
       )}
     >
-      <Providers>
-        <body className="min-h-full flex flex-col" suppressHydrationWarning>
-          {children}
-        </body>
-      </Providers>
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
+        <Providers>{children}</Providers>
+        <Toaster position="top-center" richColors closeButton />
+      </body>
     </html>
   );
 }

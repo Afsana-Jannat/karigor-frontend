@@ -1,3 +1,4 @@
+
 import {
   ArrowDownRight,
   ArrowRight,
@@ -21,7 +22,7 @@ import {
   Zap,
 } from "lucide-react";
 import Link from "next/link";
-import HomePageNav from "./home-page-nav";
+
 
 const services = [
   {
@@ -108,7 +109,6 @@ const faqs = [
 export default function HomePage() {
   return (
     <main className="scroll-smooth min-h-screen overflow-hidden bg-white text-slate-900 motion-reduce:scroll-auto">
-      <HomePageNav />
 
       {/* Hero */}
       <section className="relative isolate overflow-hidden bg-[#fbfcfe]">
