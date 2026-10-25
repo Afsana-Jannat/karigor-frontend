@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   ArrowRight,
@@ -12,7 +13,8 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
-import { getApiErrorMessage } from "@/lib/apiClient";
+import { toast } from "sonner";
+import { getApiErrorMessage, getErrorMessage } from "@/lib/apiClient";
 import {
   registerAccount,
   requestLoginOtp,
@@ -20,14 +22,35 @@ import {
   verifyLoginOtp,
   verifyRegistrationOtp,
 } from "@/lib/auth";
+import { toAsciiDigits } from "@/lib/format";
+import { sessionKey } from "@/lib/session/use-session";
 
 type AuthMode = "login" | "register";
 type AuthStep = "details" | "otp" | "complete";
 
-const phonePattern = /^\+?[1-9]\d{7,14}$/;
+const phonePattern = /^\+8801[3-9]\d{8}$/;
+
+// Bangla digits and 01XXXXXXXXX are both fine. The API gets +8801XXXXXXXXX.
+function normalizePhone(value: string) {
+  const digits = toAsciiDigits(value).replace(/[\s-]/g, "");
+  if (/^01[3-9]\d{8}$/.test(digits)) return `+88${digits}`;
+  if (/^8801[3-9]\d{8}$/.test(digits)) return `+${digits}`;
+  return digits;
+}
+
+// Demo mode only: the backend sends the OTP in the response instead of an SMS.
+function showDemoCode(code?: string) {
+  if (!code) return;
+  toast.info(`ডেমো OTP: ${code}`, {
+    id: "demo-otp", // a resend replaces the old toast
+    description: "এটি ডেমো মোড। কোডটি নিচের ঘরে লিখুন।",
+    duration: 120_000,
+  });
+}
 
 export default function AuthForm({ mode }: { mode: AuthMode }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [step, setStep] = useState<AuthStep>("details");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -43,9 +66,9 @@ export default function AuthForm({ mode }: { mode: AuthMode }) {
     event.preventDefault();
     setError("");
 
-    const normalizedPhone = phone.trim();
+    const normalizedPhone = normalizePhone(phone);
     if (!phonePattern.test(normalizedPhone)) {
-      setError("দেশের কোডসহ সঠিক ফোন নম্বর লিখুন, যেমন +8801712345678।");
+      setError("সঠিক মোবাইল নম্বর লিখুন, যেমন 01712345678।");
       return;
     }
 
@@ -71,10 +94,24 @@ export default function AuthForm({ mode }: { mode: AuthMode }) {
 
       setPhone(normalizedPhone);
       setDevCode(result.devCode ?? "");
+      showDemoCode(result.devCode);
       setOtp("");
       setStep("otp");
     } catch (requestError) {
-      setError(getApiErrorMessage(requestError));
+      setError(
+        getErrorMessage(
+          requestError,
+          isRegister
+            ? {
+                CONFLICT: "এই নম্বর দিয়ে আগে নিবন্ধন হয়েছে। লগইন করুন।",
+                FORBIDDEN: "এই অ্যাকাউন্টটি বন্ধ আছে।",
+              }
+            : {
+                NOT_FOUND: "এই নম্বরে কোনো অ্যাকাউন্ট নেই।",
+                FORBIDDEN: "এই অ্যাকাউন্টটি বন্ধ আছে।",
+              },
+        ),
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -94,14 +131,22 @@ export default function AuthForm({ mode }: { mode: AuthMode }) {
       if (isRegister) {
         const result = await verifyRegistrationOtp(phone, otp);
         if (!result.verified) {
-          throw new Error("OTP যাচাই করা যায়নি। কোডটি পরীক্ষা করে আবার চেষ্টা করুন।");
+          throw new Error(
+            "OTP যাচাই করা যায়নি। কোডটি পরীক্ষা করে আবার চেষ্টা করুন।",
+          );
         }
+        toast.dismiss("demo-otp");
         setStep("complete");
         return;
       }
 
-      await verifyLoginOtp(phone, otp);
-      router.replace("/");
+      const loginResult = await verifyLoginOtp(phone, otp);
+      toast.dismiss("demo-otp");
+      queryClient.setQueryData(sessionKey, loginResult.user);
+      const next = new URLSearchParams(window.location.search).get("next");
+      router.replace(
+        next?.startsWith("/") && !next.startsWith("//") ? next : "/",
+      );
       router.refresh();
     } catch (verificationError) {
       setError(getApiErrorMessage(verificationError));
@@ -118,6 +163,7 @@ export default function AuthForm({ mode }: { mode: AuthMode }) {
         ? await registerAccount({ name: name.trim(), phone, role })
         : await requestLoginOtp(phone);
       setDevCode(result.devCode ?? "");
+      showDemoCode(result.devCode);
       setOtp("");
     } catch (requestError) {
       setError(getApiErrorMessage(requestError));
@@ -257,7 +303,7 @@ export default function AuthForm({ mode }: { mode: AuthMode }) {
 
           <label className="block">
             <span className="mb-2 block text-sm font-semibold text-slate-700">
-              ফোন নম্বর (দেশের কোডসহ)
+              ফোন নম্বর
             </span>
             <input
               autoComplete="tel"
@@ -265,14 +311,14 @@ export default function AuthForm({ mode }: { mode: AuthMode }) {
               maxLength={16}
               name="phone"
               onChange={(event) => setPhone(event.target.value)}
-              placeholder="+8801712345678"
+              placeholder="01712345678"
               required
               type="tel"
               value={phone}
               className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#103963] focus:ring-4 focus:ring-blue-950/5"
             />
             <span className="mt-2 block text-xs leading-5 text-slate-500">
-              উদাহরণ: +8801712345678
+              উদাহরণ: 01712345678
             </span>
           </label>
 
@@ -305,7 +351,11 @@ export default function AuthForm({ mode }: { mode: AuthMode }) {
               minLength={6}
               name="otp"
               onChange={(event) =>
-                setOtp(event.target.value.replace(/\D/g, "").slice(0, 6))
+                setOtp(
+                  toAsciiDigits(event.target.value)
+                    .replace(/\D/g, "")
+                    .slice(0, 6),
+                )
               }
               placeholder="••••••"
               required

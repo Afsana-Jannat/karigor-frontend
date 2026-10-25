@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -14,10 +15,11 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiClient";
-import { logoutAccount, refreshAccessToken } from "@/lib/auth";
-import { getCurrentUser, type SignedInUser } from "@/lib/jobs";
+import { useState } from "react";
+import type { SignedInUser } from "@/features/auth/current-user";
+import { getApiErrorMessage } from "@/lib/apiClient";
+import { logoutAccount } from "@/lib/auth";
+import { sessionKey, useSession } from "@/lib/session/use-session";
 
 const sectionLinks = [
   { id: "services", label: "সার্ভিস" },
@@ -94,47 +96,15 @@ function accountLabel(role: SignedInUser["role"]) {
   return "অ্যাডমিন অ্যাকাউন্ট";
 }
 
-export default function HomePageNav() {
+export default function SiteHeader() {
   const pathname = usePathname();
   const router = useRouter();
-  const [user, setUser] = useState<SignedInUser | null>(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { data, isPending: isAuthLoading } = useSession();
+  const user = data ?? null;
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [authError, setAuthError] = useState("");
-
-  useEffect(() => {
-    let isActive = true;
-    setIsAuthLoading(true);
-
-    void (async () => {
-      try {
-        await refreshAccessToken();
-        const currentUser = await getCurrentUser();
-        if (isActive) {
-          setUser(currentUser);
-        }
-      } catch (error) {
-        if (isActive && getApiErrorStatus(error) !== 401) {
-          console.error(
-            `Unable to load the signed-in user on ${pathname}.`,
-            error,
-          );
-        }
-        if (isActive) {
-          setUser(null);
-        }
-      } finally {
-        if (isActive) {
-          setIsAuthLoading(false);
-        }
-      }
-    })();
-
-    return () => {
-      isActive = false;
-    };
-  }, [pathname]);
 
   function closeMenu() {
     setIsMenuOpen(false);
@@ -145,7 +115,8 @@ export default function HomePageNav() {
     setIsLoggingOut(true);
     try {
       await logoutAccount();
-      setUser(null);
+      queryClient.clear();
+      queryClient.setQueryData(sessionKey, null);
       closeMenu();
       router.replace("/");
       router.refresh();
@@ -215,6 +186,7 @@ export default function HomePageNav() {
                   কাজ পোস্ট
                 </Link>
               )}
+              {/* NotificationBell goes here */}
               <button
                 type="button"
                 onClick={handleLogout}

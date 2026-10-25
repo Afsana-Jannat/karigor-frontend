@@ -17,7 +17,6 @@ import { useCallback, useEffect, useState } from "react";
 import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiClient";
 import { refreshAccessToken } from "@/lib/auth";
 import { getCustomerJobBids, type JobBid } from "@/lib/jobs";
-import HomePageNav from "../../../home-page-nav";
 
 type BidSort = "price" | "rating" | "experience";
 
@@ -59,7 +58,7 @@ export default function JobBidsPage({ jobId }: { jobId: string }) {
 
   return (
     <main className="min-h-screen bg-[#f8fafc] text-slate-900">
-      <HomePageNav />
+   
       <section className="relative isolate min-h-[calc(100vh-72px)] overflow-hidden py-10 sm:py-14">
         <div className="pointer-events-none absolute -right-40 -top-32 -z-10 size-120 rounded-full bg-orange-100/50 blur-3xl" />
         <div className="mx-auto max-w-6xl px-5 sm:px-8 lg:px-12">

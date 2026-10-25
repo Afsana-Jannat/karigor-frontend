@@ -1,5 +1,7 @@
 import { requestApi, setAccessToken } from "./apiClient";
 
+export { refreshAccessToken } from "./apiClient";
+
 export type UserRole = "CUSTOMER" | "TECHNICIAN";
 
 type OtpRequestResult = {
@@ -68,28 +70,11 @@ export async function verifyLoginOtp(phone: string, otp: string) {
 }
 
 export async function logoutAccount() {
-  await requestApi<unknown>("auth/logout", { method: "POST" });
-  setAccessToken(null);
-}
-
-let refreshInFlight: Promise<void> | null = null;
-
-export function refreshAccessToken() {
-  if (!refreshInFlight) {
-    refreshInFlight = requestApi<{ accessToken: string }>("auth/refresh", {
-      method: "POST",
-    })
-      .then((result) => {
-        if (!result.accessToken) {
-          throw new Error("Refresh response did not include an access token.");
-        }
-
-        setAccessToken(result.accessToken);
-      })
-      .finally(() => {
-        refreshInFlight = null;
-      });
+  try {
+    await requestApi<unknown>("auth/logout", { method: "POST" });
+  } catch {
+    // The local session is cleared either way.
+  } finally {
+    setAccessToken(null);
   }
-
-  return refreshInFlight;
 }

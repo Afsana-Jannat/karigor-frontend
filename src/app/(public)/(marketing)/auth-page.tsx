@@ -1,6 +1,7 @@
 import { BadgeCheck, ShieldCheck, Sparkles } from "lucide-react";
 import AuthForm from "./auth-form";
-import HomePageNav from "./home-page-nav";
+
+
 
 type AuthMode = "login" | "register";
 
@@ -15,7 +16,6 @@ export default function AuthPage({ mode }: { mode: AuthMode }) {
 
   return (
     <main className="min-h-screen bg-[#f8fafc] text-slate-900">
-      <HomePageNav />
       <section className="relative isolate overflow-hidden">
         <div className="pointer-events-none absolute -right-40 -top-32 size-120 rounded-full bg-orange-100/60 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-36 -left-36 size-105 rounded-full bg-blue-100/60 blur-3xl" />
