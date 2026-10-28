@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import DashboardRedirectPage from "@/features/jobs/pages/dashboard-redirect-page";
 
-export default function DashboardPage() {
-  redirect("/jobs");
+export default function Page() {
+  return <DashboardRedirectPage />;
 }

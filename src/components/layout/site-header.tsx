@@ -30,6 +30,9 @@ const sectionLinks = [
 const mainLinks = [
   { href: "/", label: "হোম" },
   { href: "/dashboard", label: "ড্যাশবোর্ড" },
+  {href: "/technicians", label:"কারিগর খুঁজুন"},
+  {href:"/jobs/open", label:"খোলা কাজ"},
+  {href:"/bids", label:"আমার প্রস্তাব"},
   { href: "/about-us", label: "আমাদের সম্পর্কে" },
 ];
 

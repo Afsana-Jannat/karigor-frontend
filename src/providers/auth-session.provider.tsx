@@ -1,8 +1,7 @@
 "use client";
 
 import { type ReactNode, useEffect } from "react";
-import { getApiErrorStatus } from "@/lib/apiClient";
-import { refreshAccessToken } from "@/lib/auth";
+import { getApiErrorStatus, refreshAccessToken } from "@/lib/apiClient";
 
 export default function AuthSessionProvider({
   children,
