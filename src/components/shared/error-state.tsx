@@ -6,6 +6,7 @@ import { getErrorMessage } from '@/lib/apiClient';
 
 type ErrorStateProps = {
   error: unknown;
+  message?: string;
   onRetry?: () => void;
 };
 
