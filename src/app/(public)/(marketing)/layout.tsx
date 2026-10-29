@@ -1,10 +1,18 @@
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import SiteHeader from "@/components/layout/site-header";
 import { Toaster } from "sonner";
-export default function MarketingLayout({ children }: { children: ReactNode }) {
+
+export default function MarketingLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
   return (
     <>
-      <SiteHeader />
+      <Suspense fallback={<div className="h-16" aria-hidden="true" />}>
+        <SiteHeader />
+      </Suspense>
+
       {children}
     </>
   );

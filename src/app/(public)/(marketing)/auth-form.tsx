@@ -14,7 +14,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
-import { getApiErrorMessage, getErrorMessage } from "@/lib/apiClient";
+import {
+  ApiError,
+  getApiErrorMessage,
+  getErrorMessage,
+} from "@/lib/apiClient";
+import { getMyProfile } from "@/features/technician/api";
+import { technicianKeys } from "@/features/technician/keys";
 import {
   registerAccount,
   requestLoginOtp,
@@ -140,14 +146,48 @@ export default function AuthForm({ mode }: { mode: AuthMode }) {
         return;
       }
 
-      const loginResult = await verifyLoginOtp(phone, otp);
-      toast.dismiss("demo-otp");
-      queryClient.setQueryData(sessionKey, loginResult.user);
-      const next = new URLSearchParams(window.location.search).get("next");
-      router.replace(
-        next?.startsWith("/") && !next.startsWith("//") ? next : "/",
-      );
-      router.refresh();
+
+const loginResult = await verifyLoginOtp(phone, otp);
+
+toast.dismiss("demo-otp");
+queryClient.setQueryData(sessionKey, loginResult.user);
+
+const next = new URLSearchParams(window.location.search).get("next");
+const safeNext =
+  next?.startsWith("/") && !next.startsWith("//") ? next : null;
+
+if (loginResult.user.role === "TECHNICIAN") {
+  try {
+    await queryClient.fetchQuery({
+      queryKey: technicianKeys.me(),
+      queryFn: getMyProfile,
+      staleTime: 0,
+    });
+
+    // The profile exists.
+    const destination =
+      safeNext && !safeNext.startsWith("/technician/onboarding")
+        ? safeNext
+        : "/technician/dashboard";
+
+    router.replace(destination);
+  } catch (profileError) {
+    if (profileError instanceof ApiError && profileError.status === 404) {
+      // No technician profile exists yet.
+      router.replace("/technician/onboarding");
+    } else {
+      // Do not assume a failed request means the profile is missing.
+      toast.error(getErrorMessage(profileError));
+      router.replace(safeNext ?? "/");
+    }
+  }
+} else {
+  // Customers keep the existing redirect behavior.
+  router.replace(safeNext ?? "/");
+}
+
+router.refresh();
+
     } catch (verificationError) {
       setError(getApiErrorMessage(verificationError));
     } finally {
