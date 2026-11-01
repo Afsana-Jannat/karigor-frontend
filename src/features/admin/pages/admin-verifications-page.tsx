@@ -13,31 +13,40 @@ export default function AdminVerificationsPage() {
   const [page, setPage] = React.useState(1);
 
   const { data, isLoading } = useAdminVerifications(statusTab, page);
+  console.log(data, "datassssss");
 
   const columns = [
     {
       header: 'কারিগর নাম',
       accessorKey: 'name' as const,
-      cell: (item: any) => (
-        <div className="flex items-center gap-3">
-          <div className="size-10 rounded-full bg-slate-100 overflow-hidden flex items-center justify-center font-bold text-slate-600">
-            {item.photoUrl ? (
-              <img src={item.photoUrl} alt={item.name} className="size-full object-cover" />
-            ) : (
-              item.name.charAt(0)
-            )}
+      cell: (item: any) => {
+        // ব্যাকএন্ড রেসপন্স অনুযায়ী নাম item.user.name থেকে নেওয়া হচ্ছে
+        const technicianName = item.user?.name || item.name || 'অজ্ঞাত কারিগর';
+        return (
+          <div className="flex items-center gap-3">
+            <div className="size-10 rounded-full bg-slate-100 overflow-hidden flex items-center justify-center font-bold text-slate-600">
+              {item.photoUrl ? (
+                <img src={item.photoUrl} alt={technicianName} className="size-full object-cover" />
+              ) : (
+                technicianName.charAt(0) || '?'
+              )}
+            </div>
+            <span className="font-bold text-slate-900">{technicianName}</span>
           </div>
-          <span className="font-bold text-slate-900">{item.name}</span>
-        </div>
-      ),
+        );
+      },
     },
     {
-      header: 'জমা দেওয়ার সময়',
-      cell: (item: any) => new Date(item.submittedAt).toLocaleDateString('bn-BD', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      }),
+      header: 'জমা দেওয়ার সময়',
+      cell: (item: any) => {
+        // আপনার API ডেটায় createdAt বা submittedAt থাকতে পারে
+        const dateValue = item.submittedAt || item.createdAt;
+        return dateValue ? new Date(dateValue).toLocaleDateString('bn-BD', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        }) : 'তারিখ নেই';
+      },
     },
     {
       header: 'অবস্থা',
@@ -70,8 +79,8 @@ export default function AdminVerificationsPage() {
               setPage(1);
             }}
             className={`px-5 py-2.5 text-sm font-bold rounded-xl transition ${statusTab === tab
-                ? 'bg-brand text-white shadow-md'
-                : 'text-slate-600 hover:text-slate-900'
+              ? 'bg-brand text-white shadow-md'
+              : 'text-slate-600 hover:text-slate-900'
               }`}
           >
             {tab === 'PENDING' ? 'যাচাই চলছে (Pending)' : tab === 'VERIFIED' ? 'যাচাইকৃত (Verified)' : 'প্রত্যাখ্যাত (Rejected)'}
@@ -85,7 +94,15 @@ export default function AdminVerificationsPage() {
         data={data?.items || []}
         isLoading={isLoading}
         emptyMessage="কোনো যাচাইকরণ আবেদন নেই"
-        onRowClick={(item) => router.push(`/admin/verifications/${item.id}`)}
+        onRowClick={(item: any) => {
+          // টাইপস্ক্রিপ্ট এরর এড়াতে (item as any) ব্যবহার করা হলো
+          const techId = item.userId || item.id || item.user?.id;
+          if (techId) {
+            router.push(`/admin/verifications/${techId}`);
+          } else {
+            console.error("ID not found in item:", item);
+          }
+        }}
       />
     </div>
   );

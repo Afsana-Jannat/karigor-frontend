@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -14,6 +15,7 @@ export default function AdminVerificationDetailPage({ technicianId }: { technici
   const { data: detail, isLoading, refetch, isFetching } = useAdminVerificationDetail(technicianId);
   const approveMutation = useApproveTechnician(technicianId);
   const rejectMutation = useRejectTechnician(technicianId);
+  console.log(detail, "tt");
 
   if (isLoading) {
     return (
@@ -26,10 +28,15 @@ export default function AdminVerificationDetailPage({ technicianId }: { technici
   if (!detail) {
     return (
       <div className="text-center py-20 bg-white rounded-3xl border border-slate-100">
-        <p className="text-slate-500 font-medium">তথ্য পাওয়া যায়নি</p>
+        <p className="text-slate-500 font-medium">তথ্য পাওয়া যায়নি</p>
       </div>
     );
   }
+
+  // ব্যাকএন্ডের নেস্টেড স্ট্রাকচার অনুযায়ী নিরাপদ ডেটা এক্সট্রাকশন
+  const technicianName = detail.user?.name || detail.name || 'অজ্ঞাত কারিগর';
+  const technicianPhone = detail.user?.phone || detail.phone || 'ফোন নম্বর নেই';
+  const technicianPhoto = detail.photoUrl || detail.user?.photoUrl;
 
   return (
     <div className="space-y-6 pb-12 max-w-4xl mx-auto">
@@ -43,15 +50,15 @@ export default function AdminVerificationDetailPage({ technicianId }: { technici
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
         <div className="flex items-center gap-4">
           <div className="size-16 rounded-2xl bg-slate-100 overflow-hidden flex items-center justify-center font-bold text-xl text-slate-600">
-            {detail.photoUrl ? (
-              <img src={detail.photoUrl} alt={detail.name} className="size-full object-cover" />
+            {technicianPhoto ? (
+              <img src={technicianPhoto} alt={technicianName} className="size-full object-cover" />
             ) : (
-              detail.name.charAt(0)
+              technicianName.charAt(0) || '?'
             )}
           </div>
           <div>
-            <h1 className="text-2xl font-extrabold text-brand">{detail.name}</h1>
-            <p className="text-sm text-slate-500 mt-0.5">{detail.phone}</p>
+            <h1 className="text-2xl font-extrabold text-brand">{technicianName}</h1>
+            <p className="text-sm text-slate-500 mt-0.5">{technicianPhone}</p>
           </div>
         </div>
 
@@ -67,11 +74,11 @@ export default function AdminVerificationDetailPage({ technicianId }: { technici
         <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
           <h3 className="text-lg font-bold text-slate-900 border-b pb-2">প্রোফাইল তথ্য</h3>
           <div className="space-y-2 text-sm">
-            <p><span className="font-semibold text-slate-500">বয়স:</span> {detail.age} বছর</p>
-            <p><span className="font-semibold text-slate-500">অভিজ্ঞতা:</span> {detail.experienceYears} বছর</p>
-            <p><span className="font-semibold text-slate-500">বায়ো:</span> {detail.bio || 'নেই'}</p>
-            <p><span className="font-semibold text-slate-500">দক্ষতা:</span> {detail.skills.join(', ')}</p>
-            <p><span className="font-semibold text-slate-500">এলাকা:</span> {detail.areas.join(', ')}</p>
+            <p><span className="font-semibold text-slate-500">বয়স:</span> {detail.age ?? 'নেই'} বছর</p>
+            <p><span className="font-semibold text-slate-500">অভিজ্ঞতা:</span> {detail.experienceYears ?? 'নেই'} বছর</p>
+            <p><span className="font-semibold text-slate-500">বায়ো:</span> {detail.bio || 'নেই'}</p>
+            <p><span className="font-semibold text-slate-500">দক্ষতা:</span> {detail.skills?.length ? detail.skills.join(', ') : 'নেই'}</p>
+            <p><span className="font-semibold text-slate-500">এলাকা:</span> {detail.areas?.length ? detail.areas.join(', ') : 'নেই'}</p>
           </div>
         </div>
 
@@ -98,10 +105,10 @@ export default function AdminVerificationDetailPage({ technicianId }: { technici
                 }}
               />
             ) : (
-              <p className="text-xs text-slate-400">এনআইডি ছবি পাওয়া যায়নি</p>
+              <p className="text-xs text-slate-400">এনআইডি ছবি পাওয়া যায়নি</p>
             )}
           </div>
-          <p className="text-xs text-slate-400">সতর্কতা: এই প্রাইভেট এনআইডি লিংকটি প্রায় ৫ মিনিট পর মেয়াদোত্তীর্ণ হয়ে যায়[cite: 146]।</p>
+          <p className="text-xs text-slate-400">সতর্কতা: এই প্রাইভেট এনআইডি লিংকটি প্রায় ৫ মিনিট পর মেয়াদোত্তীর্ণ হয়ে যায়।</p>
         </div>
       </div>
 

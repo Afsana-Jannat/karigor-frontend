@@ -23,8 +23,13 @@ export function useAdminVerificationDetail(technicianId: string) {
   return useQuery({
     queryKey: adminKeys.verificationDetail(technicianId),
     queryFn: () => adminApi.getAdminVerificationDetail(technicianId),
-    staleTime: 0, // NID URL short-lived link: staleTime & gcTime 0[cite: 122, 146]
+    staleTime: 0,
     gcTime: 0,
+    // Nested data handle korar jonno safe select fallback:
+    select: (response: any) => {
+      if (!response) return null;
+      return response?.data?.verification ?? response?.data?.technician ?? response?.verification ?? response?.technician ?? response;
+    },
   });
 }
 
@@ -63,6 +68,11 @@ export function useAdminUserDetail(userId: string) {
   return useQuery({
     queryKey: adminKeys.userDetail(userId),
     queryFn: () => adminApi.getAdminUserDetail(userId),
+    // ব্যাকএন্ডের নেস্টেড অবজেক্ট থেকে সেফলি ডেটা এক্সট্রাক্ট করা (যাতে undefined ক্র্যাশ না করে)
+    select: (response: any) => {
+      if (!response) return null;
+      return response?.data?.user ?? response?.user ?? response;
+    },
   });
 }
 
