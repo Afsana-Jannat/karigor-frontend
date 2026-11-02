@@ -10,12 +10,12 @@ import type {
   AdminAuditLogItem,
 } from './types';
 
-// Stats
+
 export function getAdminStats() {
   return requestApi<AdminStats>('/admin/stats');
 }
 
-// Verifications
+
 export function getAdminVerifications(status = 'PENDING', page = 1) {
   return requestApiPage<AdminVerificationItem>(`/admin/verifications?status=${status}&page=${page}`);
 }

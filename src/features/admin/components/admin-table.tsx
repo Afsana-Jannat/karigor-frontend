@@ -1,4 +1,4 @@
-// src/features/admin/components/admin-table.tsx
+
 
 import * as React from 'react';
 import { LoaderCircle } from 'lucide-react';
@@ -56,7 +56,7 @@ export function AdminTable<T extends { id?: string }>({
           <tbody className="divide-y divide-slate-100">
             {data.map((item, rowIndex) => (
               <tr
-                key={item.id || rowIndex} // <-- ইউনিক কি প্রপ নিশ্চিত করা হলো
+                key={item.id || rowIndex}
                 onClick={() => onRowClick?.(item)}
                 className={`transition ${onRowClick ? 'cursor-pointer hover:bg-slate-50/80' : ''}`}
               >

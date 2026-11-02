@@ -15,7 +15,7 @@ export default function AdminUsersPage() {
   const [debouncedQuery, setDebouncedQuery] = React.useState<string>('');
   const [page, setPage] = React.useState<number>(1);
 
-  // Debounce search input (400ms)[cite: 147]
+
   React.useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedQuery(searchQuery);
@@ -54,10 +54,10 @@ export default function AdminUsersPage() {
       cell: (item: any) => (
         <span
           className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${item.status === 'ACTIVE'
-              ? 'bg-emerald-50 text-emerald-700'
-              : item.status === 'BLOCKED'
-                ? 'bg-red-50 text-red-700'
-                : 'bg-slate-100 text-slate-600'
+            ? 'bg-emerald-50 text-emerald-700'
+            : item.status === 'BLOCKED'
+              ? 'bg-red-50 text-red-700'
+              : 'bg-slate-100 text-slate-600'
             }`}
         >
           {item.status}

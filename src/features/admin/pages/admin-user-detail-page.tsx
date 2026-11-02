@@ -8,7 +8,7 @@ import { BlockUserDialog } from '../components/block-user-dialog';
 import { useSession } from '@/lib/session/use-session';
 import { formatMoney } from '@/lib/format';
 import { roleLabels } from '@/lib/labels';
-import { log } from 'console';
+
 
 
 const jobStatusLabels: Record<string, string> = {

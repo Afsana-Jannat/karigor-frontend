@@ -8,7 +8,7 @@ export function useAdminStats() {
   return useQuery({
     queryKey: adminKeys.stats(),
     queryFn: adminApi.getAdminStats,
-    staleTime: 60 * 1000, // 60s cache[cite: 146]
+    staleTime: 60 * 1000, 
   });
 }
 
@@ -25,7 +25,7 @@ export function useAdminVerificationDetail(technicianId: string) {
     queryFn: () => adminApi.getAdminVerificationDetail(technicianId),
     staleTime: 0,
     gcTime: 0,
-    // Nested data handle korar jonno safe select fallback:
+   
     select: (response: any) => {
       if (!response) return null;
       return response?.data?.verification ?? response?.data?.technician ?? response?.verification ?? response?.technician ?? response;
@@ -68,7 +68,7 @@ export function useAdminUserDetail(userId: string) {
   return useQuery({
     queryKey: adminKeys.userDetail(userId),
     queryFn: () => adminApi.getAdminUserDetail(userId),
-    // ব্যাকএন্ডের নেস্টেড অবজেক্ট থেকে সেফলি ডেটা এক্সট্রাক্ট করা (যাতে undefined ক্র্যাশ না করে)
+  
     select: (response: any) => {
       if (!response) return null;
       return response?.data?.user ?? response?.user ?? response;

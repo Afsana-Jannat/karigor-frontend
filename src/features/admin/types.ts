@@ -27,7 +27,7 @@ export interface AdminStats {
 }
 
 export interface AdminVerificationItem {
-  id: string; // technicianId
+  id: string; 
   name: string;
   photoUrl: string | null;
   submittedAt: string;
@@ -46,7 +46,7 @@ export interface AdminVerificationDetail {
   rateMin: number | null;
   rateMax: number | null;
   photoUrl: string | null;
-  nidUrl: string; // short-lived signed link (~5 mins)
+  nidUrl: string; 
   verifyStatus: 'PENDING' | 'VERIFIED' | 'REJECTED';
   rejectReason: string | null;
   submittedAt: string;

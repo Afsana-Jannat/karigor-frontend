@@ -8,7 +8,7 @@ interface BlockUserDialogProps {
   onClose: () => void;
   onSubmit: (reason: string) => void;
   isPending: boolean;
-  isBlocking: boolean; // true হলে ব্লক, false হলে আনব্লক
+  isBlocking: boolean;
 }
 
 export function BlockUserDialog({ isOpen, onClose, onSubmit, isPending, isBlocking }: BlockUserDialogProps) {

@@ -20,7 +20,6 @@ export default function AdminVerificationsPage() {
       header: 'কারিগর নাম',
       accessorKey: 'name' as const,
       cell: (item: any) => {
-        // ব্যাকএন্ড রেসপন্স অনুযায়ী নাম item.user.name থেকে নেওয়া হচ্ছে
         const technicianName = item.user?.name || item.name || 'অজ্ঞাত কারিগর';
         return (
           <div className="flex items-center gap-3">
@@ -39,7 +38,7 @@ export default function AdminVerificationsPage() {
     {
       header: 'জমা দেওয়ার সময়',
       cell: (item: any) => {
-        // আপনার API ডেটায় createdAt বা submittedAt থাকতে পারে
+
         const dateValue = item.submittedAt || item.createdAt;
         return dateValue ? new Date(dateValue).toLocaleDateString('bn-BD', {
           year: 'numeric',
@@ -95,7 +94,7 @@ export default function AdminVerificationsPage() {
         isLoading={isLoading}
         emptyMessage="কোনো যাচাইকরণ আবেদন নেই"
         onRowClick={(item: any) => {
-          // টাইপস্ক্রিপ্ট এরর এড়াতে (item as any) ব্যবহার করা হলো
+
           const techId = item.userId || item.id || item.user?.id;
           if (techId) {
             router.push(`/admin/verifications/${techId}`);

@@ -33,7 +33,7 @@ export default function AdminVerificationDetailPage({ technicianId }: { technici
     );
   }
 
-  // ব্যাকএন্ডের নেস্টেড স্ট্রাকচার অনুযায়ী নিরাপদ ডেটা এক্সট্রাকশন
+
   const technicianName = detail.user?.name || detail.name || 'অজ্ঞাত কারিগর';
   const technicianPhone = detail.user?.phone || detail.phone || 'ফোন নম্বর নেই';
   const technicianPhoto = detail.photoUrl || detail.user?.photoUrl;
