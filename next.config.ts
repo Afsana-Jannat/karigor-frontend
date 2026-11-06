@@ -11,7 +11,7 @@ const nextConfig: NextConfig = {
   turbopack: {
     rules: {
       "*.css": {
-        condition: { not: "foreign" },
+        condition: { path: /(^|\/)src\/app\/globals\.css$/ },
         loaders: ["@tailwindcss/turbopack"],
         as: "*.css",
       },
