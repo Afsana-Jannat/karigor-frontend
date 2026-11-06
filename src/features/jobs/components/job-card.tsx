@@ -57,23 +57,33 @@ export function JobCard({ job, isCustomer }: JobCardProps) {
         </p>
       ) : null}
 
-      {canViewBids || hasContract ? (
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
-          {canViewBids ? (
-            <span className="text-sm text-slate-600">
-              {formatNumber(job.bidCount ?? 0)}টি প্রস্তাব
-            </span>
-          ) : null}
-          <Link
-            href={
-              canViewBids ? `/jobs/${job.id}/bids` : `/jobs/${job.id}/contract`
-            }
-            className={buttonVariants({ variant: "accent", size: "default" })}
-          >
-            {canViewBids ? "প্রস্তাব দেখুন" : "চুক্তি দেখুন"}
-          </Link>
-        </div>
-      ) : null}
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
+        <Link
+          href={`/jobs/${job.id}`}
+          className={buttonVariants({ variant: "outline", size: "default" })}
+        >
+          কাজের বিস্তারিত
+        </Link>
+        {canViewBids || hasContract ? (
+          <div className="flex flex-wrap items-center gap-3">
+            {canViewBids ? (
+              <span className="text-sm text-slate-600">
+                {formatNumber(job.bidCount ?? 0)}টি প্রস্তাব
+              </span>
+            ) : null}
+            <Link
+              href={
+                canViewBids
+                  ? `/jobs/${job.id}/bids`
+                  : `/jobs/${job.id}/contract`
+              }
+              className={buttonVariants({ variant: "accent", size: "default" })}
+            >
+              {canViewBids ? "প্রস্তাব দেখুন" : "চুক্তি দেখুন"}
+            </Link>
+          </div>
+        ) : null}
+      </div>
     </AppCard>
   );
 }

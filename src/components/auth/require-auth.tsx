@@ -3,7 +3,7 @@
 import { CircleAlert, LoaderCircle } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { type ReactNode, useEffect } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import type { SignedInUser } from "@/features/auth/current-user";
 import { useSession } from "@/lib/session/use-session";
 
@@ -25,6 +25,7 @@ export function RequireAuth({ children, roles }: RequireAuthProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { data: user, isPending, isError, refetch } = useSession();
+  const [hasMounted, setHasMounted] = useState(false);
 
   useEffect(() => {
     if (!isPending && !isError && !user) {
@@ -32,13 +33,19 @@ export function RequireAuth({ children, roles }: RequireAuthProps) {
     }
   }, [isPending, isError, user, pathname, router]);
 
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  if (!hasMounted) {
+    return <Spinner />;
+  }
+
   if (isError) {
     return (
       <div className="mx-auto max-w-md rounded-3xl border border-red-100 bg-white p-8 text-center">
         <CircleAlert className="mx-auto text-red-500" size={30} />
-        <h2 className="mt-4 font-bold text-[#103963]">
-          লগইন যাচাই করা যায়নি
-        </h2>
+        <h2 className="mt-4 font-bold text-[#103963]">লগইন যাচাই করা যায়নি</h2>
         <button
           type="button"
           onClick={() => void refetch()}

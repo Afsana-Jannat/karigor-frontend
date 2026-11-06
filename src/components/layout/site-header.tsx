@@ -28,31 +28,49 @@ const sectionLinks = [
   { id: "technicians", label: "কারিগরদের জন্য" },
 ];
 
-const mainLinks = [
-  { href: "/", label: "হোম" },
-  { href: "/dashboard", label: "ড্যাশবোর্ড" },
-  { href: "/technicians", label: "কারিগর খুঁজুন" },
-  { href: "/jobs/open", label: "খোলা কাজ" },
-  { href: "/bids", label: "আমার প্রস্তাব" },
-  { href: "/about-us", label: "আমাদের সম্পর্কে" },
-];
+function mainLinksForRole(role: SignedInUser["role"] | null) {
+  const dashboardLink =
+    role === "CUSTOMER"
+      ? { href: "/jobs", label: "আমার কাজ" }
+      : { href: "/dashboard", label: "ড্যাশবোর্ড" };
+
+  return [
+    { href: "/", label: "হোম" },
+    dashboardLink,
+    { href: "/technicians", label: "কারিগর খুঁজুন" },
+    ...(role === "TECHNICIAN"
+      ? [
+          { href: "/jobs/open", label: "খোলা কাজ" },
+          { href: "/bids", label: "আমার প্রস্তাব" },
+        ]
+      : []),
+    ...(role ? [{ href: "/reports", label: "আমার রিপোর্ট" }] : []),
+    { href: "/about-us", label: "আমাদের সম্পর্কে" },
+  ];
+}
 
 function NavLinks({
   closeMenu,
   pathname,
+  role,
 }: {
   closeMenu: () => void;
   pathname: string;
+  role: SignedInUser["role"] | null;
 }) {
+  const mainLinks = mainLinksForRole(role);
+
   return (
     <>
       {mainLinks.map((link) => {
         const isActive =
-          link.href === "/dashboard"
-            ? pathname === "/dashboard" ||
-              pathname === "/jobs" ||
-              /^\/jobs\/[^/]+\/bids$/.test(pathname)
-            : pathname === link.href;
+          link.href === "/jobs"
+            ? pathname === "/jobs" || pathname.startsWith("/jobs/")
+            : link.href === "/dashboard" && role === "TECHNICIAN"
+              ? pathname === "/dashboard" || pathname.startsWith("/technician/")
+              : link.href === "/dashboard" && role === "ADMIN"
+                ? pathname === "/dashboard" || pathname.startsWith("/admin")
+                : pathname === link.href;
 
         return (
           <Link
@@ -151,7 +169,11 @@ export default function SiteHeader() {
           aria-label="প্রধান নেভিগেশন"
           className="hidden items-center gap-1 rounded-2xl border border-slate-100 bg-white/70 p-1 xl:flex"
         >
-          <NavLinks closeMenu={closeMenu} pathname={pathname} />
+          <NavLinks
+            closeMenu={closeMenu}
+            pathname={pathname}
+            role={user?.role ?? null}
+          />
         </nav>
 
         <div className="hidden shrink-0 items-center gap-2 xl:flex">
@@ -264,7 +286,11 @@ export default function SiteHeader() {
           className="animate-in fade-in slide-in-from-top-2 border-t border-slate-100 bg-white px-4 py-4 duration-200 sm:px-8 xl:hidden"
         >
           <div className="mx-auto flex max-w-7xl flex-col gap-1">
-            <NavLinks closeMenu={closeMenu} pathname={pathname} />
+            <NavLinks
+              closeMenu={closeMenu}
+              pathname={pathname}
+              role={user?.role ?? null}
+            />
             <div className="mt-2 border-t border-slate-100 pt-3">
               {isAuthLoading ? (
                 <span className="flex items-center gap-2 px-3 py-2 text-sm text-slate-500">

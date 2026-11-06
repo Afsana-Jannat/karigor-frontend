@@ -151,7 +151,7 @@ export default function HomePage() {
 
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
               <Link
-                href="/jobs/new"
+                href="/technicians"
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#FF6F00] px-6 py-4 font-bold text-white shadow-lg shadow-orange-500/25 transition duration-200 hover:-translate-y-0.5 hover:bg-orange-600 hover:shadow-xl"
               >
                 কারিগর খুঁজুন <ArrowRight size={19} />
