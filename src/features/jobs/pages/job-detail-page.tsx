@@ -20,6 +20,7 @@ import { PageContainer } from "@/components/shared/page-container";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { useMetaOptions } from "@/features/meta";
+import type { PaymentAttempt } from "@/features/workflow/api";
 import { useJobPayments, useReportJob } from "@/features/workflow/queries";
 import { getApiErrorStatus } from "@/lib/apiClient";
 import { formatDate, formatNumber } from "@/lib/format";
@@ -37,13 +38,20 @@ import type { JobStatus } from "../types";
 type JobDetailPageProps = { jobId: string };
 type ReportReason = "NO_SHOW" | "POOR_WORK" | "OVERCHARGE" | "FRAUD" | "OTHER";
 
+const paymentAttemptStatusLabels: Record<PaymentAttempt["status"], string> = {
+  INITIATED: "অবস্থা যাচাই বাকি",
+  SUCCESS: "সম্পন্ন",
+  FAILED: "ব্যর্থ",
+  CANCELLED: "বাতিল",
+};
+
 export default function JobDetailPage({ jobId }: JobDetailPageProps) {
   const { data: user } = useSession();
   const { skillName, areaName } = useMetaOptions();
   const { data: job, isPending, isError, error, refetch } = useJob(jobId);
   const payments = useJobPayments(
     jobId,
-    job?.status === "AWAITING_CONFIRMATION",
+    job?.status === "AWAITING_CONFIRMATION" || job?.status === "COMPLETED",
   );
   const cancel = useCancelJob();
   const complete = useCompleteJob();
@@ -216,14 +224,6 @@ export default function JobDetailPage({ jobId }: JobDetailPageProps) {
               কাজ সম্পন্ন হয়েছে
             </Button>
           ) : null}
-          {can("pay_bkash") ? (
-            <Link
-              href={`/jobs/${jobId}/payment`}
-              className={buttonVariants({ variant: "accent", size: "lg" })}
-            >
-              বিকাশে পেমেন্ট
-            </Link>
-          ) : null}
           {can("confirm") && payments.data?.paid ? (
             <Button
               size="lg"
@@ -259,14 +259,108 @@ export default function JobDetailPage({ jobId }: JobDetailPageProps) {
           ) : null}
         </div>
 
-        {payments.isError ? (
-          <p role="alert" className="mt-4 text-sm text-red-700">
-            পেমেন্টের অবস্থা লোড হয়নি। পেমেন্ট পৃষ্ঠায় গিয়ে আবার চেষ্টা করুন।
-          </p>
+        {job.status === "AWAITING_CONFIRMATION" ||
+        job.status === "COMPLETED" ? (
+          <section className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
+            <h2 className="font-bold text-brand">পেমেন্টের অবস্থা</h2>
+            {payments.isPending ? (
+              <p className="mt-2 text-sm text-slate-600">
+                পেমেন্টের তথ্য লোড হচ্ছে…
+              </p>
+            ) : null}
+            {payments.isError ? (
+              <div className="mt-2 flex flex-wrap items-center gap-3">
+                <p role="alert" className="text-sm text-red-700">
+                  পেমেন্টের তথ্য লোড হয়নি।
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => payments.refetch()}
+                >
+                  আবার চেষ্টা করুন
+                </Button>
+              </div>
+            ) : null}
+            {payments.data?.paid ? (
+              <p className="mt-2 rounded-xl bg-emerald-50 p-3 text-sm font-semibold text-emerald-800">
+                পেমেন্ট সম্পন্ন ·{" "}
+                {payments.data.method === "BKASH" ? "বিকাশ" : "নগদ"}
+                {payments.data.amountPaid !== null
+                  ? ` · ৳${payments.data.amountPaid.toLocaleString("bn-BD")}`
+                  : ""}
+              </p>
+            ) : null}
+            {payments.data && !payments.data.paid ? (
+              <>
+                <p className="mt-2 text-sm text-slate-700">
+                  বকেয়া: ৳{payments.data.amountDue.toLocaleString("bn-BD")}
+                </p>
+                {payments.data.attempts.length > 0 ? (
+                  <ul className="mt-3 space-y-2">
+                    {payments.data.attempts.map((attempt) => (
+                      <li
+                        key={attempt.id}
+                        className="rounded-xl border border-slate-200 bg-white p-3 text-sm"
+                      >
+                        <p className="font-semibold text-slate-800">
+                          বিকাশ ·{" "}
+                          {attempt.id === payments.data.attempts[0]?.id &&
+                          attempt.status === "FAILED" &&
+                          !payments.data.allowedActions.pay_bkash
+                            ? "অবস্থা যাচাই বাকি"
+                            : paymentAttemptStatusLabels[attempt.status]}
+                          {" · ৳"}
+                          {attempt.amount.toLocaleString("bn-BD")}
+                        </p>
+                        <p className="mt-1 text-slate-500">
+                          {formatDate(attempt.createdAt)}
+                          {attempt.trxId ? ` · TrxID: ${attempt.trxId}` : ""}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-2 text-sm text-slate-600">
+                    এই কাজের জন্য এখনো কোনো পেমেন্ট পাওয়া যায়নি।
+                  </p>
+                )}
+                {job.status === "AWAITING_CONFIRMATION" &&
+                isCustomer &&
+                payments.data.allowedActions.pay_bkash ? (
+                  <Link
+                    href={`/jobs/${jobId}/payment`}
+                    className={`${buttonVariants({ variant: "accent", size: "lg" })} mt-4`}
+                  >
+                    {payments.data.attempts.length > 0
+                      ? "আবার বিকাশে পেমেন্ট করুন"
+                      : "বিকাশে পেমেন্ট করুন"}
+                  </Link>
+                ) : null}
+                {job.status === "AWAITING_CONFIRMATION" &&
+                isCustomer &&
+                !payments.data.allowedActions.pay_bkash &&
+                payments.data.attempts.length > 0 ? (
+                  <div className="mt-4">
+                    <p className="text-sm text-amber-800">
+                      আগের পেমেন্টের অবস্থা নিশ্চিত নয়। যাচাই না হওয়া পর্যন্ত আবার পেমেন্ট করবেন না।
+                    </p>
+                    <Link
+                      href={`/payment/result?status=failure&jobId=${encodeURIComponent(jobId)}`}
+                      className={`${buttonVariants({ variant: "outline", size: "lg" })} mt-3`}
+                    >
+                      পেমেন্টের অবস্থা যাচাই করুন
+                    </Link>
+                  </div>
+                ) : null}
+              </>
+            ) : null}
+          </section>
         ) : null}
-        {payments.data?.paid ? (
+        {job.status === "COMPLETED" ? (
           <p className="mt-4 rounded-xl bg-emerald-50 p-3 text-sm font-semibold text-emerald-800">
-            পেমেন্ট সম্পন্ন · {payments.data.method === "BKASH" ? "বিকাশ" : "নগদ"}
+            কাজ সম্পন্ন হয়েছে। আপনার কাজের চূড়ান্ত অবস্থা এখানে দেখানো হচ্ছে।
           </p>
         ) : null}
 

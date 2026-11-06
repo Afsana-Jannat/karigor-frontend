@@ -38,7 +38,7 @@ export default function PaymentCheckoutPage({ jobId }: { jobId: string }) {
             পেমেন্ট সম্পন্ন
           </h1>
           <p className="mt-2 text-slate-600">
-            {formatMoney(payments.data.amountDue)} ·{" "}
+            {formatMoney(payments.data.amountPaid ?? payments.data.amountDue)} ·{" "}
             {payments.data.method === "BKASH" ? "বিকাশ" : "নগদ"}
           </p>
           <Button

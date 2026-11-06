@@ -18,6 +18,7 @@ import {
   initiateBkashPayment,
   markAllNotificationsRead,
   markNotificationRead,
+  reconcileBkashPayment,
   submitJobReport,
 } from "./api";
 
@@ -102,6 +103,18 @@ export const useBkashPayment = () =>
     mutationFn: initiateBkashPayment,
     onError: (error) => toast.error(getErrorMessage(error)),
   });
+
+export const useReconcileBkashPayment = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: reconcileBkashPayment,
+    onSuccess: (_result, jobId) => {
+      void qc.invalidateQueries({ queryKey: workflowKeys.payments(jobId) });
+      void qc.invalidateQueries({ queryKey: jobKeys.byId(jobId) });
+    },
+    onError: (error) => toast.error(getErrorMessage(error)),
+  });
+};
 
 export const useSaveCvSummary = () =>
   useMutation({

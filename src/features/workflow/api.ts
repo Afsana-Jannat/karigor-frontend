@@ -1,4 +1,3 @@
-import { getJob } from "@/features/jobs/api";
 import {
   type PageMeta,
   requestApi,
@@ -27,7 +26,20 @@ export type JobPayments = {
   paid: boolean;
   method: "BKASH" | "CASH" | null;
   amountDue: number;
+  amountPaid: number | null;
+  attempts: PaymentAttempt[];
   allowedActions: Record<string, boolean>;
+};
+
+export type PaymentAttempt = {
+  id: string;
+  method: "BKASH" | "CASH";
+  amount: number;
+  status: "INITIATED" | "SUCCESS" | "FAILED" | "CANCELLED";
+  trxId: string | null;
+  failureReason: string | null;
+  createdAt: string;
+  completedAt: string | null;
 };
 
 function toQuery(
@@ -81,12 +93,24 @@ export const submitJobReport = (
   });
 
 export const getJobPayments = async (jobId: string): Promise<JobPayments> => {
-  const job = await getJob(jobId);
+  const result = await requestApi<{
+    paid: boolean;
+    method: JobPayments["method"];
+    amountDue: number | null;
+    paymentAttempts: PaymentAttempt[];
+    availableActions: { canPayWithBkash: boolean; [action: string]: boolean };
+  }>(`payments/${encodeURIComponent(jobId)}/payments`);
+  const successfulPayment = result.paymentAttempts.find(
+    (payment) => payment.status === "SUCCESS",
+  );
+
   return {
-    paid: Boolean(job.payment?.paidAt),
-    method: job.payment?.method ?? null,
-    amountDue: job.agreedPrice ?? 0,
-    allowedActions: job.allowedActions,
+    paid: result.paid,
+    method: result.method,
+    amountDue: result.amountDue ?? 0,
+    amountPaid: successfulPayment?.amount ?? null,
+    attempts: result.paymentAttempts,
+    allowedActions: { pay_bkash: result.availableActions.canPayWithBkash },
   };
 };
 
@@ -94,6 +118,12 @@ export const initiateBkashPayment = (jobId: string) =>
   requestApi<{ paymentId: string; amount: number; bkashURL: string }>(
     "payments/bkash/initiate",
     { method: "POST", body: { jobId } },
+  );
+
+export const reconcileBkashPayment = (jobId: string) =>
+  requestApi<{ status: "PAID" | "FAILED" | "PENDING"; paid: boolean }>(
+    `payments/${encodeURIComponent(jobId)}/reconcile`,
+    { method: "POST" },
   );
 
 export const generateCvSummary = (language: "bn" | "en" | "both" = "both") =>
