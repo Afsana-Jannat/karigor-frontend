@@ -1,4 +1,10 @@
-import { type PageMeta, requestApi, requestApiPage } from "@/lib/apiClient";
+import { getJob } from "@/features/jobs/api";
+import {
+  type PageMeta,
+  requestApi,
+  requestApiPage,
+  requestApiWithMeta,
+} from "@/lib/apiClient";
 
 export type NotificationItem = {
   id: string;
@@ -17,22 +23,11 @@ export type ReportItem = {
   createdAt: string;
 };
 
-export type PaymentAttempt = {
-  id: string;
-  method: "BKASH" | "CASH";
-  amount: number;
-  status: "INITIATED" | "SUCCESS" | "FAILED" | "CANCELLED";
-  trxId: string | null;
-  createdAt: string;
-  completedAt: string | null;
-};
-
 export type JobPayments = {
-  payments: PaymentAttempt[];
   paid: boolean;
   method: "BKASH" | "CASH" | null;
   amountDue: number;
-  allowedActions: string[];
+  allowedActions: Record<string, boolean>;
 };
 
 function toQuery(
@@ -46,10 +41,24 @@ function toQuery(
   return text ? `?${text}` : "";
 }
 
-export const getNotifications = (page = 1, unreadOnly = false) =>
-  requestApiPage<NotificationItem>(
-    `notifications${toQuery({ page, pageSize: 20, unreadOnly: unreadOnly || undefined })}`,
+export const getNotifications = async (page = 1, unreadOnly = false) => {
+  const pageSize = 20;
+  const { data, meta } = await requestApiWithMeta<{
+    unreadCount: number;
+    notifications: NotificationItem[];
+  }>(
+    `notifications${toQuery({ page, pageSize, unreadOnly: unreadOnly || undefined })}`,
   );
+  return {
+    items: data.notifications,
+    meta: meta ?? {
+      page,
+      pageSize,
+      total: data.notifications.length,
+      totalPages: 1,
+    },
+  };
+};
 
 export const markNotificationRead = (id: string) =>
   requestApi<NotificationItem>(`notifications/${encodeURIComponent(id)}/read`, {
@@ -57,7 +66,7 @@ export const markNotificationRead = (id: string) =>
   });
 
 export const markAllNotificationsRead = () =>
-  requestApi<{ count: number }>("notifications/read-all", { method: "POST" });
+  requestApi<{ updated: number }>("notifications/read-all", { method: "POST" });
 
 export const getMyReports = (page = 1) =>
   requestApiPage<ReportItem>(`reports/mine${toQuery({ page, pageSize: 10 })}`);
@@ -71,35 +80,21 @@ export const submitJobReport = (
     body: input,
   });
 
-export const getJobPayments = (jobId: string) =>
-  requestApi<JobPayments>(`jobs/${encodeURIComponent(jobId)}/payments`);
-
-export const getPayment = (paymentId: string) =>
-  requestApi<PaymentAttempt>(`payments/${encodeURIComponent(paymentId)}`);
+export const getJobPayments = async (jobId: string): Promise<JobPayments> => {
+  const job = await getJob(jobId);
+  return {
+    paid: Boolean(job.payment?.paidAt),
+    method: job.payment?.method ?? null,
+    amountDue: job.agreedPrice ?? 0,
+    allowedActions: job.allowedActions,
+  };
+};
 
 export const initiateBkashPayment = (jobId: string) =>
   requestApi<{ paymentId: string; amount: number; bkashURL: string }>(
     "payments/bkash/initiate",
     { method: "POST", body: { jobId } },
   );
-
-export const recordCashPayment = (jobId: string) =>
-  requestApi<PaymentAttempt>(
-    `jobs/${encodeURIComponent(jobId)}/payments/cash`,
-    { method: "POST" },
-  );
-
-export const updateMyName = (name: string) =>
-  requestApi<{ id: string; name: string }>("users/me", {
-    method: "PATCH",
-    body: { name },
-  });
-
-export const deleteMyAccount = () =>
-  requestApi<{ deleted: boolean }>("users/me", {
-    method: "DELETE",
-    body: { confirm: "DELETE" },
-  });
 
 export const generateCvSummary = (language: "bn" | "en" | "both" = "both") =>
   requestApi<{ suggestion: { bn?: string; en?: string }; usedAi: boolean }>(

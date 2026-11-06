@@ -49,7 +49,7 @@ function PaymentResultQuery({
           <>
             <p className="mt-3 leading-7 text-slate-600">
               {payments.data.paid
-                ? `পেমেন্ট সফল হয়েছে · ${payments.data.method ?? "পরিশোধিত"} · ৳${(payments.data.payments.find((payment) => payment.status === "SUCCESS")?.amount ?? payments.data.amountDue).toLocaleString("bn-BD")}`
+                ? `পেমেন্ট সফল হয়েছে · ${payments.data.method ?? "পরিশোধিত"} · ৳${payments.data.amountDue.toLocaleString("bn-BD")}`
                 : status === "cancel"
                   ? "পেমেন্ট বাতিল হয়েছে। চাইলে আবার চেষ্টা করুন।"
                   : status === "success"

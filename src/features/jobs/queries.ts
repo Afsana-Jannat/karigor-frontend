@@ -15,6 +15,7 @@ import {
   createJob,
   getJob,
   getJobBids,
+  getMyBids,
   getMyJobs,
   getOpenJobs,
   reviewJob,
@@ -46,6 +47,13 @@ export const useOpenJobs = (
     placeholderData: keepPreviousData,
     refetchInterval: 60_000,
     retry: false,
+  });
+
+export const useMyBids = (filters: { page?: number; pageSize?: number } = {}) =>
+  useQuery({
+    queryKey: jobKeys.myBids(filters),
+    queryFn: () => getMyBids(filters),
+    placeholderData: keepPreviousData,
   });
 
 export const useJob = (jobId: string) =>

@@ -8,6 +8,7 @@ import type {
   JobDetail,
   JobListFilters,
   JobListItem,
+  MyBidItem,
   OpenJobItem,
 } from "./types";
 
@@ -40,21 +41,73 @@ export const getOpenJobs = ({
 } = {}) =>
   requestApiPage<OpenJobItem>(`jobs/open${toQuery({ page, pageSize })}`);
 
+export const getMyBids = ({
+  status,
+  page = 1,
+  pageSize = 20,
+}: {
+  status?: string;
+  page?: number;
+  pageSize?: number;
+} = {}) =>
+  requestApiPage<MyBidItem>(`bids/mine${toQuery({ status, page, pageSize })}`);
+
 /** GET /jobs/:id. Details and actions available to the current user. */
-export const getJob = (jobId: string) =>
-  requestApi<JobDetail>(`jobs/${encodeURIComponent(jobId)}`);
+export const getJob = async (jobId: string) => {
+  type NestedJobDetail = {
+    job: Omit<
+      JobDetail,
+      "counterpart" | "contract" | "payment" | "allowedActions"
+    >;
+    counterpart: JobDetail["counterpart"];
+    contract: JobDetail["contract"];
+    payment: JobDetail["payment"];
+    allowedActions: Record<string, boolean>;
+  };
+
+  const result = await requestApi<JobDetail | NestedJobDetail>(
+    `jobs/${encodeURIComponent(jobId)}`,
+  );
+  if (!("job" in result)) {
+    return result;
+  }
+  return {
+    ...result.job,
+    counterpart: result.counterpart,
+    contract: result.contract,
+    payment: result.payment,
+    allowedActions: result.allowedActions,
+  };
+};
 
 /** GET /jobs/:id/bids. Customer-owned job bids. */
-export const getJobBids = (jobId: string, sort = "price") =>
-  requestApi<Array<JobBid & { id?: string; bidId?: string }>>(
+export const getJobBids = async (jobId: string, sort = "price") => {
+  type BidResponse = Omit<JobBid, "id" | "bidId"> & {
+    id?: string;
+    bidId?: string;
+  };
+  type JobBidsResponse =
+    | BidResponse[]
+    | {
+        job: {
+          id: string;
+          status: string;
+          expiresAt: string;
+          bidCount: number;
+        };
+        bids: BidResponse[];
+      };
+
+  const response = await requestApi<JobBidsResponse>(
     `jobs/${encodeURIComponent(jobId)}/bids${toQuery({ sort })}`,
-  ).then((bids) =>
-    bids.map((bid) => ({
-      ...bid,
-      id: bid.id ?? bid.bidId ?? "",
-      bidId: bid.bidId ?? bid.id ?? "",
-    })),
   );
+  const bids = Array.isArray(response) ? response : response.bids;
+  return bids.map((bid) => ({
+    ...bid,
+    id: bid.id ?? bid.bidId ?? "",
+    bidId: bid.bidId ?? bid.id ?? "",
+  }));
+};
 
 /** POST /jobs */
 export const createJob = (input: CreateJobInput) =>

@@ -10,17 +10,18 @@ import { LoadingState } from "@/components/shared/loading-state";
 import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { Pagination } from "@/components/shared/pagination";
-import { useOpenJobs } from "@/features/jobs/queries";
-import { formatDate, formatMoney, formatNumber } from "@/lib/format";
+import { useMyBids } from "@/features/jobs/queries";
+import { useMetaOptions } from "@/features/meta";
+import { formatDate, formatMoney } from "@/lib/format";
 import { bidStatusLabels } from "@/lib/labels";
 
 function MyBidsContent() {
   const [page, setPage] = useState(1);
-  const { data, isPending, isError, error, refetch } = useOpenJobs({
+  const { skillName, areaName } = useMetaOptions();
+  const { data, isPending, isError, error, refetch } = useMyBids({
     page,
     pageSize: 20,
   });
-  const myBids = data?.items.filter((job) => job.myBid) ?? [];
 
   return (
     <PageContainer>
@@ -33,7 +34,7 @@ function MyBidsContent() {
         <LoadingState />
       ) : isError ? (
         <ErrorState error={error} onRetry={() => refetch()} />
-      ) : myBids.length === 0 ? (
+      ) : data.items.length === 0 ? (
         <EmptyState
           icon={HandCoins}
           text="এই পাতার কাজগুলোতে আপনার কোনো প্রস্তাব নেই।"
@@ -49,30 +50,28 @@ function MyBidsContent() {
       ) : (
         <>
           <div className="space-y-3">
-            {myBids.map((job) => (
+            {data.items.map((bid) => (
               <article
-                key={job.id}
+                key={bid.bidId}
                 className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-5"
               >
                 <div>
                   <p className="font-bold text-brand">
-                    {job.customerName} · {formatDate(job.preferredDate)}
+                    {skillName(bid.job.skill)} · {areaName(bid.job.area)} ·{" "}
+                    {formatDate(bid.job.preferredDate)}
                   </p>
                   <p className="mt-1 text-sm text-slate-500">
-                    {formatNumber(job.bidCount)}টি প্রস্তাব
+                    {bidStatusLabels[bid.status] ?? bid.status}
                   </p>
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="text-right">
                     <p className="font-bold text-cta">
-                      {formatMoney(job.myBid?.price ?? 0)}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      {job.myBid ? bidStatusLabels[job.myBid.status] : ""}
+                      {formatMoney(bid.price)}
                     </p>
                   </div>
                   <Link
-                    href={`/jobs/${job.id}`}
+                    href={`/jobs/${bid.job.id}`}
                     className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold text-brand"
                   >
                     কাজ দেখুন

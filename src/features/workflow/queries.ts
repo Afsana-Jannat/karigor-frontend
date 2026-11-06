@@ -11,7 +11,6 @@ import { jobKeys } from "@/features/jobs/keys";
 import { getErrorMessage } from "@/lib/apiClient";
 import { sessionKey } from "@/lib/session/use-session";
 import {
-  deleteMyAccount,
   generateCvSummary,
   getJobPayments,
   getMyReports,
@@ -19,9 +18,7 @@ import {
   initiateBkashPayment,
   markAllNotificationsRead,
   markNotificationRead,
-  recordCashPayment,
   submitJobReport,
-  updateMyName,
 } from "./api";
 
 export const workflowKeys = {
@@ -54,10 +51,10 @@ export const useReadAllNotifications = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: markAllNotificationsRead,
-    onSuccess: ({ count }) => {
+    onSuccess: ({ updated }) => {
       void qc.invalidateQueries({ queryKey: workflowKeys.notifications });
       void qc.invalidateQueries({ queryKey: sessionKey });
-      toast.success(`${count}টি বিজ্ঞপ্তি পড়া হয়েছে।`);
+      toast.success(`${updated}টি বিজ্ঞপ্তি পড়া হয়েছে।`);
     },
     onError: (error) => toast.error(getErrorMessage(error)),
   });
@@ -68,6 +65,7 @@ export const useMyReports = (page = 1) =>
     queryKey: [...workflowKeys.reports, page],
     queryFn: () => getMyReports(page),
     placeholderData: keepPreviousData,
+    retry: false,
   });
 
 export const useReportJob = () => {
@@ -102,41 +100,6 @@ export const useJobPayments = (jobId: string, enabled = true) =>
 export const useBkashPayment = () =>
   useMutation({
     mutationFn: initiateBkashPayment,
-    onError: (error) => toast.error(getErrorMessage(error)),
-  });
-
-export const useCashPayment = () => {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: recordCashPayment,
-    onSuccess: (_payment, jobId) => {
-      void qc.invalidateQueries({ queryKey: workflowKeys.payments(jobId) });
-      void qc.invalidateQueries({ queryKey: jobKeys.byId(jobId) });
-      toast.success("নগদ পেমেন্ট পাওয়া হিসেবে রেকর্ড হয়েছে।");
-    },
-    onError: (error) => toast.error(getErrorMessage(error)),
-  });
-};
-
-export const useUpdateMyName = () => {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: updateMyName,
-    onSuccess: ({ name }) => {
-      qc.setQueryData(
-        sessionKey,
-        (user: { name?: string } | null | undefined) =>
-          user ? { ...user, name } : user,
-      );
-      toast.success("নাম আপডেট হয়েছে।");
-    },
-    onError: (error) => toast.error(getErrorMessage(error)),
-  });
-};
-
-export const useDeleteMyAccount = () =>
-  useMutation({
-    mutationFn: deleteMyAccount,
     onError: (error) => toast.error(getErrorMessage(error)),
   });
 

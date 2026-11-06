@@ -52,7 +52,7 @@ export default function PaymentCheckoutPage({ jobId }: { jobId: string }) {
     );
   }
 
-  const canPay = payments.data.allowedActions.includes("pay_bkash");
+  const canPay = payments.data.allowedActions.pay_bkash;
   return (
     <PageContainer narrow>
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-9">

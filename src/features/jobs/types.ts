@@ -85,11 +85,27 @@ export type JobDetail = {
     technicianSignedAt: string | null;
   } | null;
   payment: { paidAt: string | null; method: "BKASH" | "CASH" | null } | null;
-  allowedActions: string[];
+  allowedActions: Record<string, boolean>;
   review?: { id: string; rating: number; comment: string | null } | null;
 };
 
 export type BidStatus = "ACTIVE" | "SELECTED" | "REJECTED" | "WITHDRAWN";
+
+export type MyBidItem = {
+  bidId: string;
+  price: number;
+  note: string | null;
+  status: BidStatus;
+  updatedAt: string;
+  job: {
+    id: string;
+    skill: string;
+    area: string;
+    status: JobStatus;
+    preferredDate: string;
+    expiresAt: string | null;
+  };
+};
 
 export type CreateBidInput = {
   price: number;

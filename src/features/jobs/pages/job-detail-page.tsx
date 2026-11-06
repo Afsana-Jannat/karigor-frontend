@@ -20,11 +20,7 @@ import { PageContainer } from "@/components/shared/page-container";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { useMetaOptions } from "@/features/meta";
-import {
-  useCashPayment,
-  useJobPayments,
-  useReportJob,
-} from "@/features/workflow/queries";
+import { useJobPayments, useReportJob } from "@/features/workflow/queries";
 import { getApiErrorStatus } from "@/lib/apiClient";
 import { formatDate, formatNumber } from "@/lib/format";
 import { jobStatusLabels, reportReasonLabels } from "@/lib/labels";
@@ -54,7 +50,6 @@ export default function JobDetailPage({ jobId }: JobDetailPageProps) {
   const confirm = useConfirmJob();
   const review = useReviewJob();
   const report = useReportJob();
-  const cashPayment = useCashPayment();
   const [cancelReason, setCancelReason] = useState("");
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState<ReportReason>("OTHER");
@@ -86,7 +81,7 @@ export default function JobDetailPage({ jobId }: JobDetailPageProps) {
       </PageContainer>
     );
 
-  const can = (action: string) => job.allowedActions?.includes(action) ?? false;
+  const can = (action: string) => job.allowedActions?.[action] ?? false;
   const isCustomer = user?.role === "CUSTOMER";
 
   function submitReport(event: FormEvent<HTMLFormElement>) {
@@ -228,16 +223,6 @@ export default function JobDetailPage({ jobId }: JobDetailPageProps) {
             >
               বিকাশে পেমেন্ট
             </Link>
-          ) : null}
-          {can("mark_cash_received") ? (
-            <Button
-              size="lg"
-              variant="outline"
-              disabled={cashPayment.isPending}
-              onClick={() => cashPayment.mutate(jobId)}
-            >
-              নগদ পেমেন্ট পেয়েছি
-            </Button>
           ) : null}
           {can("confirm") && payments.data?.paid ? (
             <Button
