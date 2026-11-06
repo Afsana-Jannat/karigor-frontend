@@ -5,13 +5,12 @@ import {
   getCurrentUser,
   type SignedInUser,
 } from "@/features/auth/current-user";
-import { getApiErrorStatus, refreshAccessToken } from "@/lib/apiClient";
+import { getApiErrorStatus } from "@/lib/apiClient";
 
 export const sessionKey = ["session"] as const;
 
 async function loadSession(): Promise<SignedInUser | null> {
   try {
-    await refreshAccessToken();
     return await getCurrentUser();
   } catch (error) {
     if (getApiErrorStatus(error) === 401) {

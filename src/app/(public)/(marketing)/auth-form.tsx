@@ -4,7 +4,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   ArrowRight,
-  CheckCircle2,
   LoaderCircle,
   LockKeyhole,
   Phone,
@@ -14,25 +13,18 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
-import {
-  ApiError,
-  getApiErrorMessage,
-  getErrorMessage,
-} from "@/lib/apiClient";
-import { getMyProfile } from "@/features/technician/api";
-import { technicianKeys } from "@/features/technician/keys";
+import { getApiErrorMessage, getErrorMessage } from "@/lib/apiClient";
 import {
   registerAccount,
   requestLoginOtp,
   type UserRole,
-  verifyLoginOtp,
-  verifyRegistrationOtp,
+  verifyAccountOtp,
 } from "@/lib/auth";
 import { toAsciiDigits } from "@/lib/format";
 import { sessionKey } from "@/lib/session/use-session";
 
 type AuthMode = "login" | "register";
-type AuthStep = "details" | "otp" | "complete";
+type AuthStep = "details" | "otp";
 
 const phonePattern = /^\+8801[3-9]\d{8}$/;
 
@@ -134,60 +126,25 @@ export default function AuthForm({ mode }: { mode: AuthMode }) {
 
     setIsSubmitting(true);
     try {
-      if (isRegister) {
-        const result = await verifyRegistrationOtp(phone, otp);
-        if (!result.verified) {
-          throw new Error(
-            "OTP যাচাই করা যায়নি। কোডটি পরীক্ষা করে আবার চেষ্টা করুন।",
-          );
-        }
-        toast.dismiss("demo-otp");
-        setStep("complete");
-        return;
+      const loginResult = await verifyAccountOtp(phone, otp);
+      toast.dismiss("demo-otp");
+      queryClient.setQueryData(sessionKey, {
+        ...loginResult.user,
+        technician: loginResult.technician,
+      });
+
+      const next = new URLSearchParams(window.location.search).get("next");
+      const safeNext =
+        next?.startsWith("/") && !next.startsWith("//") ? next : null;
+      if (
+        loginResult.user.role === "TECHNICIAN" &&
+        !loginResult.technician?.hasProfile
+      ) {
+        router.replace("/technician/onboarding");
+      } else {
+        router.replace(safeNext ?? "/dashboard");
       }
-
-
-const loginResult = await verifyLoginOtp(phone, otp);
-
-toast.dismiss("demo-otp");
-queryClient.setQueryData(sessionKey, loginResult.user);
-
-const next = new URLSearchParams(window.location.search).get("next");
-const safeNext =
-  next?.startsWith("/") && !next.startsWith("//") ? next : null;
-
-if (loginResult.user.role === "TECHNICIAN") {
-  try {
-    await queryClient.fetchQuery({
-      queryKey: technicianKeys.me(),
-      queryFn: getMyProfile,
-      staleTime: 0,
-    });
-
-    // The profile exists.
-    const destination =
-      safeNext && !safeNext.startsWith("/technician/onboarding")
-        ? safeNext
-        : "/technician/dashboard";
-
-    router.replace(destination);
-  } catch (profileError) {
-    if (profileError instanceof ApiError && profileError.status === 404) {
-      // No technician profile exists yet.
-      router.replace("/technician/onboarding");
-    } else {
-      // Do not assume a failed request means the profile is missing.
-      toast.error(getErrorMessage(profileError));
-      router.replace(safeNext ?? "/");
-    }
-  }
-} else {
-  // Customers keep the existing redirect behavior.
-  router.replace(safeNext ?? "/");
-}
-
-router.refresh();
-
+      router.refresh();
     } catch (verificationError) {
       setError(getApiErrorMessage(verificationError));
     } finally {
@@ -210,28 +167,6 @@ router.refresh();
     } finally {
       setIsSubmitting(false);
     }
-  }
-
-  if (step === "complete") {
-    return (
-      <div className="rounded-3xl border border-emerald-100 bg-white p-7 text-center shadow-xl shadow-blue-950/5 sm:p-9">
-        <span className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
-          <CheckCircle2 size={32} />
-        </span>
-        <h1 className="mt-6 text-2xl font-extrabold text-[#103963]">
-          নিবন্ধন সম্পন্ন হয়েছে
-        </h1>
-        <p className="mt-3 leading-7 text-slate-600">
-          আপনার ফোন নম্বর যাচাই হয়েছে। এখন লগইন করে Karigor ব্যবহার শুরু করুন।
-        </p>
-        <Link
-          href="/login"
-          className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#103963] px-5 py-3.5 font-bold text-white transition hover:bg-[#0b2b4c]"
-        >
-          লগইন করুন <ArrowRight size={18} />
-        </Link>
-      </div>
-    );
   }
 
   return (

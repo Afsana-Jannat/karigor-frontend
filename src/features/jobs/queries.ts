@@ -9,9 +9,15 @@ import {
 import { toast } from "sonner";
 import { getErrorMessage } from "@/lib/apiClient";
 import {
+  cancelJob,
+  completeJob,
+  confirmJob,
   createJob,
+  getJob,
+  getJobBids,
   getMyJobs,
   getOpenJobs,
+  reviewJob,
   submitBid,
   withdrawBid,
 } from "./api";
@@ -39,6 +45,26 @@ export const useOpenJobs = (
     queryFn: () => getOpenJobs(filters),
     placeholderData: keepPreviousData,
     refetchInterval: 60_000,
+    retry: false,
+  });
+
+export const useJob = (jobId: string) =>
+  useQuery({
+    queryKey: jobKeys.byId(jobId),
+    queryFn: () => getJob(jobId),
+    refetchInterval: (query) =>
+      ["CONTRACT_PENDING", "AWAITING_CONFIRMATION"].includes(
+        query.state.data?.status ?? "",
+      )
+        ? 20_000
+        : false,
+    retry: false,
+  });
+
+export const useJobBids = (jobId: string, sort: string) =>
+  useQuery({
+    queryKey: jobKeys.bids(jobId, sort),
+    queryFn: () => getJobBids(jobId, sort),
     retry: false,
   });
 
@@ -83,3 +109,53 @@ export const useWithdrawBid = () => {
     onError: (error) => toast.error(getErrorMessage(error)),
   });
 };
+
+function useJobTransition<TVariables>(
+  mutationFn: (variables: TVariables) => Promise<unknown>,
+) {
+  const invalidate = useInvalidateJobs();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn,
+    onSuccess: (_data, variables) => {
+      invalidate();
+      if (typeof variables === "string") {
+        void qc.invalidateQueries({ queryKey: jobKeys.byId(variables) });
+      } else if (
+        variables &&
+        typeof variables === "object" &&
+        "jobId" in variables &&
+        typeof variables.jobId === "string"
+      ) {
+        void qc.invalidateQueries({
+          queryKey: jobKeys.byId(variables.jobId),
+        });
+      }
+    },
+    onError: (error) => toast.error(getErrorMessage(error)),
+  });
+}
+
+export const useCancelJob = () =>
+  useJobTransition(({ jobId, reason }: { jobId: string; reason?: string }) =>
+    cancelJob(jobId, reason),
+  );
+
+export const useCompleteJob = () =>
+  useJobTransition((jobId: string) => completeJob(jobId));
+
+export const useConfirmJob = () =>
+  useJobTransition((jobId: string) => confirmJob(jobId));
+
+export const useReviewJob = () =>
+  useJobTransition(
+    ({
+      jobId,
+      rating,
+      comment,
+    }: {
+      jobId: string;
+      rating: number;
+      comment?: string;
+    }) => reviewJob(jobId, { rating, comment }),
+  );

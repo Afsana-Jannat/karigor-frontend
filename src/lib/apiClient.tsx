@@ -8,23 +8,10 @@ const API_BASE_URL = API_ORIGIN
     : `${API_ORIGIN}/api/v1`
   : undefined;
 
-let accessToken: string | null = null;
-
-export function setAccessToken(token: string | null) {
-  accessToken = token;
-}
-
 export const apiClient = ofetch.create({
   baseURL: API_BASE_URL,
   cache: "no-store",
   credentials: "include",
-  onRequest({ options }) {
-    if (accessToken) {
-      const headers = new Headers(options.headers);
-      headers.set("Authorization", `Bearer ${accessToken}`);
-      options.headers = headers;
-    }
-  },
 });
 
 export type PageMeta = {
@@ -78,8 +65,11 @@ function toApiError(error: unknown): ApiError {
   if (error instanceof ApiError) {
     return error;
   }
-  const shape = (error && typeof error === "object" ? error : {}) as FetchErrorShape;
-  const status = shape.status ?? shape.statusCode ?? shape.response?.status ?? 0;
+  const shape = (
+    error && typeof error === "object" ? error : {}
+  ) as FetchErrorShape;
+  const status =
+    shape.status ?? shape.statusCode ?? shape.response?.status ?? 0;
   if (status === 0) {
     return new ApiError("NETWORK", 0, errorMessages.NETWORK);
   }
@@ -92,46 +82,9 @@ function toApiError(error: unknown): ApiError {
   );
 }
 
-let refreshInFlight: Promise<void> | null = null;
-
-// One refresh at a time. Parallel callers share the same promise.
-export function refreshAccessToken(): Promise<void> {
-  if (!API_BASE_URL) {
-    return Promise.reject(
-      new ApiError(
-        "INTERNAL",
-        0,
-        "API is not configured. Set NEXT_PUBLIC_API_BASE_URL in .env.local and restart the dev server.",
-      ),
-    );
-  }
-
-  if (!refreshInFlight) {
-    refreshInFlight = apiClient<ApiEnvelope<{ accessToken?: string }>>(
-      "auth/refresh",
-      { method: "POST" },
-    )
-      .then((response) => {
-        const token = response.data?.accessToken;
-        if (!token) {
-          throw new ApiError("INTERNAL", 500, errorMessages.INTERNAL);
-        }
-        setAccessToken(token);
-      })
-      .catch((error: unknown) => {
-        throw toApiError(error);
-      })
-      .finally(() => {
-        refreshInFlight = null;
-      });
-  }
-  return refreshInFlight;
-}
-
 async function send<T>(
   path: string,
   options: FetchOptions<"json">,
-  canRetry: boolean,
 ): Promise<ApiEnvelope<T>> {
   if (!API_BASE_URL) {
     throw new ApiError(
@@ -144,17 +97,7 @@ async function send<T>(
   try {
     return await apiClient<ApiEnvelope<T>>(path, options);
   } catch (error) {
-    const apiError = toApiError(error);
-    // An expired access token: refresh once and repeat the request.
-    if (apiError.status === 401 && canRetry && !path.startsWith("auth/")) {
-      try {
-        await refreshAccessToken();
-      } catch {
-        throw apiError;
-      }
-      return send<T>(path, options, false);
-    }
-    throw apiError;
+    throw toApiError(error);
   }
 }
 
@@ -162,7 +105,7 @@ export async function requestApi<T>(
   path: string,
   options: FetchOptions<"json"> = {},
 ): Promise<T> {
-  const response = await send<T>(path, options, true);
+  const response = await send<T>(path, options);
   if (!response.success) {
     throw new ApiError(
       "INTERNAL",
@@ -178,7 +121,7 @@ export async function requestApiPage<T>(
   path: string,
   options: FetchOptions<"json"> = {},
 ): Promise<{ items: T[]; meta: PageMeta }> {
-  const response = await send<T[]>(path, options, true);
+  const response = await send<T[]>(path, options);
   const items = response.data;
   return {
     items,
@@ -198,7 +141,9 @@ export function getErrorMessage(
 ): string {
   if (error instanceof ApiError) {
     return (
-      overrides[error.code] ?? errorMessages[error.code] ?? errorMessages.INTERNAL
+      overrides[error.code] ??
+      errorMessages[error.code] ??
+      errorMessages.INTERNAL
     );
   }
   if (error instanceof Error && /[\u0980-\u09FF]/.test(error.message)) {

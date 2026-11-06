@@ -1,7 +1,5 @@
+"use client";
 
-'use client';
-
-import { useCallback, useMemo, useState } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
@@ -20,15 +18,19 @@ import {
   Sparkles,
   Wrench,
   Zap,
-} from 'lucide-react';
-import { toast } from 'sonner';
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useCallback, useMemo, useState } from "react";
+import { toast } from "sonner";
 
-import { Button } from '@/components/ui/button';
-import VoiceAnswerInput from '../components/voice-answer-input';
-import { useExtractAnswerText } from '../queries';
-import type { ExtractResult } from '../types';
+import { Button } from "@/components/ui/button";
+import { useMetaOptions } from "@/features/meta";
+import { useSession } from "@/lib/session/use-session";
+import VoiceAnswerInput from "../components/voice-answer-input";
+import { useExtractAnswerText, useUpsertProfile } from "../queries";
+import type { ExtractResult } from "../types";
 
-type QuestionKey = 'age' | 'experience' | 'skills' | 'areas' | 'charge';
+type QuestionKey = "age" | "experience" | "skills" | "areas" | "charge";
 
 type SkillOption = {
   slug: string;
@@ -40,105 +42,120 @@ const questions: {
   key: QuestionKey;
   question: string;
 }[] = [
-  { key: 'age', question: 'আপনার বয়স কত?' },
-  { key: 'experience', question: 'কত বছর ধরে কাজ করছেন?' },
-  { key: 'skills', question: 'আপনি কী কাজ করেন?' },
+  { key: "age", question: "আপনার বয়স কত?" },
+  { key: "experience", question: "কত বছর ধরে কাজ করছেন?" },
+  { key: "skills", question: "আপনি কী কাজ করেন?" },
   {
-    key: 'areas',
-    question: 'কোন কোন এলাকায় কাজ করতে পারবেন?',
+    key: "areas",
+    question: "কোন কোন এলাকায় কাজ করতে পারবেন?",
   },
-  { key: 'charge', question: 'সাধারণত কত টাকা নেন?' },
+  { key: "charge", question: "সাধারণত কত টাকা নেন?" },
 ];
 
-// Temporary UI options. We'll connect these to the real
-// /meta/options endpoint before completing profile saving.
-const skills: SkillOption[] = [
-  { slug: 'electrician', label: 'ইলেকট্রিশিয়ান', icon: Zap },
-  { slug: 'plumber', label: 'প্লাম্বার', icon: Droplets },
-  { slug: 'ac', label: 'এসি মিস্ত্রি', icon: HomeIcon },
-  { slug: 'carpenter', label: 'কাঠমিস্ত্রি', icon: Wrench },
-  { slug: 'painter', label: 'রং মিস্ত্রি', icon: Sparkles },
-  { slug: 'welder', label: 'ওয়েল্ডার', icon: HardHat },
-];
-
-const areas = [
-  { slug: 'mirpur', label: 'মিরপুর' },
-  { slug: 'dhanmondi', label: 'ধানমন্ডি' },
-  { slug: 'uttara', label: 'উত্তরা' },
-  { slug: 'mohammadpur', label: 'মোহাম্মদপুর' },
-  { slug: 'banani', label: 'বনানী' },
-  { slug: 'gulshan', label: 'গুলশান' },
-  { slug: 'badda', label: 'বাড্ডা' },
-  { slug: 'jatrabari', label: 'যাত্রাবাড়ী' },
-];
+const skillIconBySlug: Record<string, typeof Zap> = {
+  electrician: Zap,
+  plumber: Droplets,
+  ac: HomeIcon,
+  carpenter: Wrench,
+  painter: Sparkles,
+  welder: HardHat,
+};
 
 const bn = (value: number | string) =>
-  String(value).replace(/\d/g, (digit) => '০১২৩৪৫৬৭৮৯'[Number(digit)]);
+  String(value).replace(/\d/g, (digit) => "০১২৩৪৫৬৭৮৯"[Number(digit)]);
 
-function optionLabels(values: string[], options: { slug: string; label: string }[]) {
+function optionLabels(
+  values: string[],
+  options: { slug: string; label: string }[],
+) {
   const labels = values
     .map((value) => options.find((option) => option.slug === value)?.label)
     .filter((label): label is string => Boolean(label));
 
-  return labels.join('، ') || (values.length ? `${bn(values.length)}টি নির্বাচন` : '—');
+  return (
+    labels.join("، ") || (values.length ? `${bn(values.length)}টি নির্বাচন` : "—")
+  );
 }
 
-function resultLabel(result: ExtractResult): string {
+function resultLabel(
+  result: ExtractResult,
+  skills: SkillOption[],
+  areas: { slug: string; label: string }[],
+): string {
   const value = result.value;
 
-  if (value === null) return 'নিচের থেকে একটি বেছে নিন';
+  if (value === null) return "নিচের থেকে একটি বেছে নিন";
 
-  if (typeof value === 'number') {
-    return `${bn(value)} ${result.questionKey === 'age' ? 'বছর' : 'বছর'}`;
+  if (typeof value === "number") {
+    return `${bn(value)} ${result.questionKey === "age" ? "বছর" : "বছর"}`;
   }
 
   if (Array.isArray(value)) {
-    const options = result.questionKey === 'skills' ? skills : areas;
+    const options = result.questionKey === "skills" ? skills : areas;
     return optionLabels(value, options);
   }
 
-  if (
-    typeof value === 'object' &&
-    'rateMin' in value &&
-    'rateMax' in value
-  ) {
+  if (typeof value === "object" && "rateMin" in value && "rateMax" in value) {
     return `৳${bn(value.rateMin)} – ৳${bn(value.rateMax)}`;
   }
 
-  return 'নিচের থেকে বেছে নিন';
+  return "নিচের থেকে বেছে নিন";
 }
 
 export default function TechnicianOnboardingPage() {
+  const router = useRouter();
+  const { data: user } = useSession();
+  const {
+    skills: metaSkills,
+    areas: metaAreas,
+    isPending: optionsPending,
+  } = useMetaOptions();
+  const saveProfile = useUpsertProfile();
   const [step, setStep] = useState(1);
   const [age, setAge] = useState<number | null>(null);
   const [experience, setExperience] = useState<number | null>(null);
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [selectedAreas, setSelectedAreas] = useState<string[]>([]);
-  const [areaSearch, setAreaSearch] = useState('');
-  const [minCharge, setMinCharge] = useState('');
-  const [maxCharge, setMaxCharge] = useState('');
-  const [name, setName] = useState('');
-  const [bio, setBio] = useState('');
-  const [typedAnswer, setTypedAnswer] = useState('');
-  const [pendingResult, setPendingResult] = useState<ExtractResult | null>(null);
+  const [areaSearch, setAreaSearch] = useState("");
+  const [minCharge, setMinCharge] = useState("");
+  const [maxCharge, setMaxCharge] = useState("");
+  const [name, setName] = useState("");
+  const [bio, setBio] = useState("");
+  const [typedAnswer, setTypedAnswer] = useState("");
+  const [pendingResult, setPendingResult] = useState<ExtractResult | null>(
+    null,
+  );
   const [answerError, setAnswerError] = useState<string | null>(null);
   const [recorderVersion, setRecorderVersion] = useState(0);
 
   const extractText = useExtractAnswerText();
   const currentQuestion = questions[step - 1];
+  const skills = useMemo(
+    () =>
+      metaSkills.map((option) => ({
+        slug: option.slug,
+        label: option.bn,
+        icon: skillIconBySlug[option.slug] ?? Wrench,
+      })),
+    [metaSkills],
+  );
+  const areas = useMemo(
+    () => metaAreas.map(({ slug, bn: label }) => ({ slug, label })),
+    [metaAreas],
+  );
 
   const filteredAreas = useMemo(
     () =>
       areas.filter((area) =>
         area.label.toLowerCase().includes(areaSearch.trim().toLowerCase()),
       ),
-    [areaSearch],
+    [areaSearch, areas],
   );
 
   const clearAnswerState = () => {
     setPendingResult(null);
     setAnswerError(null);
-    setTypedAnswer('');
+    setTypedAnswer("");
     setRecorderVersion((version) => version + 1);
   };
 
@@ -148,21 +165,21 @@ export default function TechnicianOnboardingPage() {
   }, []);
 
   const handleVoiceError = useCallback(() => {
-    setAnswerError('বুঝতে পারিনি। নিচের থেকে একটি বেছে নিন।');
+    setAnswerError("বুঝতে পারিনি। নিচের থেকে একটি বেছে নিন।");
   }, []);
 
   const playQuestion = () => {
     const audio = new Audio(`/audio/q-${currentQuestion.key}.mp3`);
 
     void audio.play().catch(() => {
-      setAnswerError('প্রশ্নের অডিও চালানো যাচ্ছে না। নিচের থেকে উত্তর বেছে নিন।');
+      setAnswerError("প্রশ্নের অডিও চালানো যাচ্ছে না। নিচের থেকে উত্তর বেছে নিন।");
     });
   };
 
   const applyResult = () => {
     if (!pendingResult || pendingResult.value === null) {
       setPendingResult(null);
-      setAnswerError('নিচের থেকে একটি উত্তর বেছে নিন।');
+      setAnswerError("নিচের থেকে একটি উত্তর বেছে নিন।");
       setRecorderVersion((version) => version + 1);
       return;
     }
@@ -170,29 +187,29 @@ export default function TechnicianOnboardingPage() {
     const { questionKey, value } = pendingResult;
 
     switch (questionKey) {
-      case 'age':
-        if (typeof value === 'number') setAge(value);
+      case "age":
+        if (typeof value === "number") setAge(value);
         break;
 
-      case 'experience':
-        if (typeof value === 'number') setExperience(value);
+      case "experience":
+        if (typeof value === "number") setExperience(value);
         break;
 
-      case 'skills':
+      case "skills":
         if (Array.isArray(value)) setSelectedSkills(value);
         break;
 
-      case 'areas':
+      case "areas":
         if (Array.isArray(value)) setSelectedAreas(value);
         break;
 
-      case 'charge':
+      case "charge":
         if (
-          typeof value === 'object' &&
+          typeof value === "object" &&
           value !== null &&
           !Array.isArray(value) &&
-          'rateMin' in value &&
-          'rateMax' in value
+          "rateMin" in value &&
+          "rateMax" in value
         ) {
           setMinCharge(String(value.rateMin));
           setMaxCharge(String(value.rateMax));
@@ -202,7 +219,7 @@ export default function TechnicianOnboardingPage() {
 
     setPendingResult(null);
     setAnswerError(null);
-    setTypedAnswer('');
+    setTypedAnswer("");
     setRecorderVersion((version) => version + 1);
   };
 
@@ -210,7 +227,7 @@ export default function TechnicianOnboardingPage() {
     const text = typedAnswer.trim();
 
     if (!text) {
-      setAnswerError('আগে আপনার উত্তর লিখুন।');
+      setAnswerError("আগে আপনার উত্তর লিখুন।");
       return;
     }
 
@@ -222,7 +239,7 @@ export default function TechnicianOnboardingPage() {
           setAnswerError(null);
         },
         onError: () => {
-          setAnswerError('উত্তর বোঝা যায়নি। নিচের থেকে একটি বেছে নিন।');
+          setAnswerError("উত্তর বোঝা যায়নি। নিচের থেকে একটি বেছে নিন।");
         },
       },
     );
@@ -230,35 +247,34 @@ export default function TechnicianOnboardingPage() {
 
   const next = () => {
     let valid = true;
-    let message = 'অনুগ্রহ করে উত্তর দিন অথবা নিচের থেকে বেছে নিন।';
+    let message = "অনুগ্রহ করে উত্তর দিন অথবা নিচের থেকে বেছে নিন।";
 
     if (step === 1) {
       valid = age !== null && age >= 16 && age <= 80;
-      message = 'বয়স ১৬ থেকে ৮০ বছরের মধ্যে দিন।';
+      message = "বয়স ১৬ থেকে ৮০ বছরের মধ্যে দিন।";
     } else if (step === 2) {
-      valid =
-        experience !== null && experience >= 0 && experience <= 60;
-      message = 'আপনার কাজের অভিজ্ঞতা নির্বাচন করুন।';
+      valid = experience !== null && experience >= 0 && experience <= 60;
+      message = "আপনার কাজের অভিজ্ঞতা নির্বাচন করুন।";
     } else if (step === 3) {
       valid = selectedSkills.length > 0;
-      message = 'অন্তত একটি কাজ বেছে নিন।';
+      message = "অন্তত একটি কাজ বেছে নিন।";
     } else if (step === 4) {
       valid = selectedAreas.length > 0;
-      message = 'অন্তত একটি এলাকা বেছে নিন।';
+      message = "অন্তত একটি এলাকা বেছে নিন।";
     } else if (step === 5) {
       const minimum = Number(minCharge);
       const maximum = Number(maxCharge);
 
       valid =
-        minCharge.trim() !== '' &&
-        maxCharge.trim() !== '' &&
+        minCharge.trim() !== "" &&
+        maxCharge.trim() !== "" &&
         Number.isInteger(minimum) &&
         Number.isInteger(maximum) &&
         minimum >= 0 &&
         maximum >= minimum &&
         maximum <= 1_000_000;
 
-      message = 'সর্বনিম্ন ও সর্বোচ্চ চার্জ সঠিকভাবে লিখুন।';
+      message = "সর্বনিম্ন ও সর্বোচ্চ চার্জ সঠিকভাবে লিখুন।";
     }
 
     if (!valid) {
@@ -357,12 +373,12 @@ export default function TechnicianOnboardingPage() {
 
               <ReviewItem
                 label="বয়স"
-                value={age === null ? '—' : `${bn(age)} বছর`}
+                value={age === null ? "—" : `${bn(age)} বছর`}
                 onEdit={() => setStep(1)}
               />
               <ReviewItem
                 label="অভিজ্ঞতা"
-                value={experience === null ? '—' : `${bn(experience)} বছর`}
+                value={experience === null ? "—" : `${bn(experience)} বছর`}
                 onEdit={() => setStep(2)}
               />
               <ReviewItem
@@ -380,7 +396,7 @@ export default function TechnicianOnboardingPage() {
                 value={
                   minCharge && maxCharge
                     ? `৳${bn(minCharge)} – ৳${bn(maxCharge)}`
-                    : '—'
+                    : "—"
                 }
                 onEdit={() => setStep(5)}
               />
@@ -400,10 +416,42 @@ export default function TechnicianOnboardingPage() {
             <Button
               size="lg"
               className="mt-6 h-12 w-full bg-[#ff6f00] text-base text-white hover:bg-[#e96300]"
-              onClick={() =>
-                toast.info('প্রোফাইল সংরক্ষণের সংযোগ পরের ধাপে যুক্ত করব।')
-              }
+              disabled={optionsPending || saveProfile.isPending}
+              onClick={() => {
+                if (
+                  age === null ||
+                  experience === null ||
+                  selectedSkills.length === 0 ||
+                  selectedAreas.length === 0 ||
+                  !minCharge ||
+                  !maxCharge
+                ) {
+                  toast.error("সব আবশ্যক তথ্য পূরণ করুন।");
+                  return;
+                }
+                saveProfile.mutate(
+                  {
+                    name: name.trim() || user?.name,
+                    age,
+                    bio: bio.trim() || undefined,
+                    experienceYears: experience,
+                    skills: selectedSkills,
+                    areas: selectedAreas,
+                    rateMin: Number(minCharge),
+                    rateMax: Number(maxCharge),
+                  },
+                  {
+                    onSuccess: () => {
+                      router.replace("/technician/dashboard");
+                      router.refresh();
+                    },
+                  },
+                );
+              }}
             >
+              {saveProfile.isPending ? (
+                <LoaderCircle className="size-4 animate-spin" />
+              ) : null}
               প্রোফাইল তৈরি করুন <ArrowRight data-icon="inline-end" />
             </Button>
 
@@ -440,7 +488,7 @@ export default function TechnicianOnboardingPage() {
           <button
             type="button"
             aria-label="সাহায্য"
-            onClick={() => toast.info('প্রয়োজনে নিচের থেকে উত্তর বেছে নিন।')}
+            onClick={() => toast.info("প্রয়োজনে নিচের থেকে উত্তর বেছে নিন।")}
             className="flex size-11 items-center justify-center rounded-xl text-[#103963] hover:bg-white"
           >
             <CircleHelp className="size-5" />
@@ -450,9 +498,7 @@ export default function TechnicianOnboardingPage() {
         <section className="mt-7 flex-1">
           <div className="mb-7 flex items-center justify-between">
             <div>
-              <p className="text-sm font-bold text-[#ff6f00]">
-                কারিগর প্রোফাইল
-              </p>
+              <p className="text-sm font-bold text-[#ff6f00]">কারিগর প্রোফাইল</p>
               <p className="mt-1 text-sm text-slate-500">
                 একটি করে প্রশ্নের উত্তর দিন
               </p>
@@ -463,16 +509,19 @@ export default function TechnicianOnboardingPage() {
             </span>
           </div>
 
-          {/** biome-ignore lint/a11y/useAriaPropsSupportedByRole: <explanation> */}
-<div
+          <div
+            role="progressbar"
             className="mb-9 flex gap-2"
             aria-label={`ধাপ ${bn(step)} এর ${bn(5)}`}
+            aria-valuemin={1}
+            aria-valuemax={5}
+            aria-valuenow={step}
           >
             {[1, 2, 3, 4, 5].map((item) => (
               <div
                 key={item}
                 className={`h-1.5 flex-1 rounded-full ${
-                  item <= step ? 'bg-[#ff6f00]' : 'bg-slate-200'
+                  item <= step ? "bg-[#ff6f00]" : "bg-slate-200"
                 }`}
               />
             ))}
@@ -511,16 +560,14 @@ export default function TechnicianOnboardingPage() {
                     <CircleHelp className="size-10 text-orange-500" />
                   )}
 
-                  <p className="text-sm font-bold text-[#103963]">
-                    আমরা শুনেছি:
-                  </p>
+                  <p className="text-sm font-bold text-[#103963]">আমরা শুনেছি:</p>
 
                   <p className="text-slate-600">
-                    {pendingResult.transcript || 'উত্তরটি বোঝা যায়নি।'}
+                    {pendingResult.transcript || "উত্তরটি বোঝা যায়নি।"}
                   </p>
 
                   <p className="text-lg font-bold text-[#103963]">
-                    {resultLabel(pendingResult)}
+                    {resultLabel(pendingResult, skills, areas)}
                   </p>
 
                   <div className="mt-2 flex flex-wrap justify-center gap-2">
@@ -572,6 +619,7 @@ export default function TechnicianOnboardingPage() {
               experience={experience}
               setExperience={setExperience}
               selectedSkills={selectedSkills}
+              skills={skills}
               toggleSkill={toggleSkill}
               selectedAreas={selectedAreas}
               toggleArea={toggleArea}
@@ -620,7 +668,7 @@ export default function TechnicianOnboardingPage() {
             size="lg"
             className="h-12 min-w-32 bg-[#ff6f00] text-white hover:bg-[#e96300]"
           >
-            {step === 5 ? 'দেখে নিন' : 'পরের ধাপ'}
+            {step === 5 ? "দেখে নিন" : "পরের ধাপ"}
             <ArrowRight data-icon="inline-end" />
           </Button>
         </footer>
@@ -636,10 +684,11 @@ type StepAnswerProps = {
   experience: number | null;
   setExperience: (value: number | null) => void;
   selectedSkills: string[];
+  skills: SkillOption[];
   toggleSkill: (slug: string) => void;
   selectedAreas: string[];
   toggleArea: (slug: string) => void;
-  filteredAreas: typeof areas;
+  filteredAreas: { slug: string; label: string }[];
   areaSearch: string;
   setAreaSearch: (value: string) => void;
   minCharge: string;
@@ -663,9 +712,7 @@ function StepAnswer(props: StepAnswerProps) {
           <button
             type="button"
             aria-label="কম করুন"
-            onClick={() =>
-              setValue(Math.max(minimum, (value ?? minimum) - 1))
-            }
+            onClick={() => setValue(Math.max(minimum, (value ?? minimum) - 1))}
             className="flex size-14 items-center justify-center rounded-2xl border-2 border-slate-200 text-3xl hover:border-[#103963]"
           >
             −
@@ -673,7 +720,7 @@ function StepAnswer(props: StepAnswerProps) {
 
           <div className="min-w-24 text-center">
             <p className="text-5xl font-bold text-[#103963]">
-              {value === null ? '—' : bn(value)}
+              {value === null ? "—" : bn(value)}
             </p>
             <p className="mt-1 text-sm text-slate-500">বছর</p>
           </div>
@@ -692,21 +739,18 @@ function StepAnswer(props: StepAnswerProps) {
 
         <input
           aria-label="টাইপ করে উত্তর দিন"
-          value={value ?? ''}
+          value={value ?? ""}
           onChange={(event) => {
             const raw = event.target.value;
             setValue(
-              raw === ''
+              raw === ""
                 ? null
-                : Math.min(
-                    maximum,
-                    Math.max(minimum, Number(raw) || minimum),
-                  ),
+                : Math.min(maximum, Math.max(minimum, Number(raw) || minimum)),
             );
           }}
           className="mt-6 h-12 w-full rounded-xl border border-slate-200 px-4 text-center text-lg outline-none focus:border-[#103963]"
           inputMode="numeric"
-          placeholder={step === 1 ? 'বয়স লিখুন' : 'বছর লিখুন'}
+          placeholder={step === 1 ? "বয়স লিখুন" : "বছর লিখুন"}
         />
       </div>
     );
@@ -715,7 +759,7 @@ function StepAnswer(props: StepAnswerProps) {
   if (step === 3) {
     return (
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {skills.map(({ slug, label, icon: Icon }) => {
+        {props.skills.map(({ slug, label, icon: Icon }) => {
           const active = props.selectedSkills.includes(slug);
 
           return (
@@ -725,12 +769,12 @@ function StepAnswer(props: StepAnswerProps) {
               onClick={() => props.toggleSkill(slug)}
               className={`flex min-h-24 flex-col items-center justify-center gap-2 rounded-2xl border-2 p-3 text-center transition ${
                 active
-                  ? 'border-[#ff6f00] bg-orange-50 text-[#103963]'
-                  : 'border-slate-200 hover:border-[#103963]/30'
+                  ? "border-[#ff6f00] bg-orange-50 text-[#103963]"
+                  : "border-slate-200 hover:border-[#103963]/30"
               }`}
             >
               <Icon
-                className={`size-7 ${active ? 'text-[#ff6f00]' : 'text-[#103963]'}`}
+                className={`size-7 ${active ? "text-[#ff6f00]" : "text-[#103963]"}`}
               />
               <span className="text-sm font-bold">{label}</span>
               {active && <Check className="size-4 text-[#ff6f00]" />}
@@ -765,16 +809,14 @@ function StepAnswer(props: StepAnswerProps) {
                 key={area.slug}
                 onClick={() => props.toggleArea(area.slug)}
                 className={`flex min-h-14 items-center gap-3 rounded-xl border-2 px-3 text-left text-sm font-bold ${
-                  active
-                    ? 'border-[#ff6f00] bg-orange-50'
-                    : 'border-slate-200'
+                  active ? "border-[#ff6f00] bg-orange-50" : "border-slate-200"
                 }`}
               >
                 <span
                   className={`flex size-6 items-center justify-center rounded-md border ${
                     active
-                      ? 'border-[#ff6f00] bg-[#ff6f00] text-white'
-                      : 'border-slate-300'
+                      ? "border-[#ff6f00] bg-[#ff6f00] text-white"
+                      : "border-slate-300"
                   }`}
                 >
                   {active && <Check className="size-4" />}
@@ -804,7 +846,7 @@ function StepAnswer(props: StepAnswerProps) {
       </div>
 
       <div className="mt-5 flex flex-wrap gap-2">
-        {['500', '1000', '1500', '2000'].map((amount) => (
+        {["500", "1000", "1500", "2000"].map((amount) => (
           <button
             type="button"
             key={amount}
@@ -836,9 +878,7 @@ function ChargeInput({
         <input
           aria-label={label}
           value={value}
-          onChange={(event) =>
-            setValue(event.target.value.replace(/\D/g, ''))
-          }
+          onChange={(event) => setValue(event.target.value.replace(/\D/g, ""))}
           className="h-12 w-full bg-transparent px-2 text-xl font-bold outline-none"
           inputMode="numeric"
         />
@@ -864,7 +904,7 @@ function ReviewItem({
         onClick={onEdit}
         className="flex min-h-12 items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 text-left font-medium text-slate-700 hover:bg-slate-100"
       >
-        <span>{value || '—'}</span>
+        <span>{value || "—"}</span>
         <Pencil className="size-4 shrink-0 text-slate-400" />
       </button>
     </div>

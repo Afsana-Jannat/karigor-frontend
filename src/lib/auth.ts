@@ -1,6 +1,4 @@
-import { requestApi, setAccessToken } from "./apiClient";
-
-export { refreshAccessToken } from "./apiClient";
+import { requestApi } from "./apiClient";
 
 export type UserRole = "CUSTOMER" | "TECHNICIAN";
 
@@ -12,22 +10,23 @@ type OtpRequestResult = {
 
 type RegistrationVerificationResult = {
   verified: boolean;
-  user?: {
-    id: string;
-    name: string;
-    phone: string;
-    role: UserRole;
-  };
-};
-
-type LoginResult = {
   user: {
     id: string;
     name: string;
     phone: string;
     role: UserRole;
   };
-  accessToken: string;
+  technician: { hasProfile: boolean; verifyStatus: string } | null;
+};
+
+export type LoginResult = {
+  user: {
+    id: string;
+    name: string;
+    phone: string;
+    role: UserRole | "ADMIN";
+  };
+  technician: { hasProfile: boolean; verifyStatus: string } | null;
 };
 
 export function registerAccount(input: {
@@ -42,39 +41,27 @@ export function registerAccount(input: {
 }
 
 export function requestLoginOtp(phone: string) {
-  return requestApi<OtpRequestResult>("auth/login/request-otp", {
+  return requestApi<OtpRequestResult>("auth/login", {
     method: "POST",
     body: { phone },
   });
 }
 
-export function verifyRegistrationOtp(phone: string, otp: string) {
-  return requestApi<RegistrationVerificationResult>("auth/verify-otp", {
-    method: "POST",
-    body: { phone, otp },
-  });
+export function verifyAccountOtp(phone: string, code: string) {
+  return requestApi<LoginResult & Partial<RegistrationVerificationResult>>(
+    "auth/verify-otp",
+    {
+      method: "POST",
+      body: { phone, code },
+    },
+  );
 }
 
-export async function verifyLoginOtp(phone: string, otp: string) {
-  const result = await requestApi<LoginResult>("auth/login/verify-otp", {
+export const verifyRegistrationOtp = verifyAccountOtp;
+export const verifyLoginOtp = verifyAccountOtp;
+
+export function logoutAccount(allDevices = false) {
+  return requestApi<unknown>(allDevices ? "auth/logout-all" : "auth/logout", {
     method: "POST",
-    body: { phone, otp },
   });
-
-  if (!result.accessToken) {
-    throw new Error("Login response did not include an access token.");
-  }
-
-  setAccessToken(result.accessToken);
-  return result;
-}
-
-export async function logoutAccount() {
-  try {
-    await requestApi<unknown>("auth/logout", { method: "POST" });
-  } catch {
-    // The local session is cleared either way.
-  } finally {
-    setAccessToken(null);
-  }
 }

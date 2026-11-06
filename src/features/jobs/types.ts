@@ -46,6 +46,49 @@ export type OpenJobItem = {
   myBid: { price: number; status: BidStatus } | null;
 };
 
+export type JobBid = {
+  id: string;
+  bidId: string;
+  price: number;
+  note: string | null;
+  status: BidStatus;
+  createdAt: string;
+  technician: {
+    id: string;
+    name: string;
+    photoUrl: string | null;
+    verified: boolean;
+    ratingAvg: number;
+    ratingCount: number;
+    completedJobs: number;
+    experienceYears: number;
+  };
+};
+
+export type JobDetail = {
+  id: string;
+  skill: string;
+  area: string;
+  status: JobStatus;
+  preferredDate: string;
+  description: string;
+  isEmergency: boolean;
+  expiresAt: string | null;
+  agreedPrice: number | null;
+  createdAt: string;
+  bidCount: number;
+  counterpart: (Counterpart & { phone?: string | null }) | null;
+  contract: {
+    id: string;
+    status: "PENDING" | "SIGNED" | "VOID";
+    customerSignedAt: string | null;
+    technicianSignedAt: string | null;
+  } | null;
+  payment: { paidAt: string | null; method: "BKASH" | "CASH" | null } | null;
+  allowedActions: string[];
+  review?: { id: string; rating: number; comment: string | null } | null;
+};
+
 export type BidStatus = "ACTIVE" | "SELECTED" | "REJECTED" | "WITHDRAWN";
 
 export type CreateBidInput = {

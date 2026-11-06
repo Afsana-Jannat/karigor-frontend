@@ -4,6 +4,8 @@ import type {
   CreateBidInput,
   CreateJobInput,
   CreateJobResult,
+  JobBid,
+  JobDetail,
   JobListFilters,
   JobListItem,
   OpenJobItem,
@@ -38,20 +40,63 @@ export const getOpenJobs = ({
 } = {}) =>
   requestApiPage<OpenJobItem>(`jobs/open${toQuery({ page, pageSize })}`);
 
+/** GET /jobs/:id. Details and actions available to the current user. */
+export const getJob = (jobId: string) =>
+  requestApi<JobDetail>(`jobs/${encodeURIComponent(jobId)}`);
+
+/** GET /jobs/:id/bids. Customer-owned job bids. */
+export const getJobBids = (jobId: string, sort = "price") =>
+  requestApi<Array<JobBid & { id?: string; bidId?: string }>>(
+    `jobs/${encodeURIComponent(jobId)}/bids${toQuery({ sort })}`,
+  ).then((bids) =>
+    bids.map((bid) => ({
+      ...bid,
+      id: bid.id ?? bid.bidId ?? "",
+      bidId: bid.bidId ?? bid.id ?? "",
+    })),
+  );
+
 /** POST /jobs */
 export const createJob = (input: CreateJobInput) =>
   requestApi<CreateJobResult>("jobs", { method: "POST", body: input });
 
-/** PUT /bids/:id/bid. Creates, edits, or reactivates the technician's bid. */
+/** PUT /jobs/:id/bid. Creates, edits, or reactivates the technician's bid. */
 export const submitBid = (jobId: string, input: CreateBidInput) =>
-  requestApi<Bid>(`bids/${encodeURIComponent(jobId)}/bid`, {
+  requestApi<Bid>(`jobs/${encodeURIComponent(jobId)}/bid`, {
     method: "PUT",
     body: input,
   });
 
-/** DELETE /bids/:id/bid. Withdraws the technician's active bid. */
+/** DELETE /jobs/:id/bid. Withdraws the technician's active bid. */
 export const withdrawBid = (jobId: string) =>
   requestApi<{ jobId: string; status: "WITHDRAWN" }>(
-    `bids/${encodeURIComponent(jobId)}/bid`,
+    `jobs/${encodeURIComponent(jobId)}/bid`,
     { method: "DELETE" },
+  );
+
+export const cancelJob = (jobId: string, reason?: string) =>
+  requestApi<{ id: string; status: "CANCELLED" }>(
+    `jobs/${encodeURIComponent(jobId)}/cancel`,
+    { method: "POST", body: { reason } },
+  );
+
+export const completeJob = (jobId: string) =>
+  requestApi<{ id: string; status: "AWAITING_CONFIRMATION" }>(
+    `jobs/${encodeURIComponent(jobId)}/complete`,
+    { method: "POST" },
+  );
+
+export const confirmJob = (jobId: string) =>
+  requestApi<{ id: string; status: "COMPLETED" }>(
+    `jobs/${encodeURIComponent(jobId)}/confirm`,
+    { method: "POST" },
+  );
+
+export const reviewJob = (
+  jobId: string,
+  input: { rating: number; comment?: string },
+) =>
+  requestApi<{ id: string; rating: number }>(
+    `jobs/${encodeURIComponent(jobId)}/review`,
+    { method: "POST", body: input },
   );

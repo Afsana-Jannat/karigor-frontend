@@ -1,6 +1,10 @@
+import { getJob, getJobBids } from "@/features/jobs/api";
 import { requestApi } from "./apiClient";
 
-export { getCurrentUser, type SignedInUser } from "@/features/auth/current-user";
+export {
+  getCurrentUser,
+  type SignedInUser,
+} from "@/features/auth/current-user";
 
 export type JobStatus =
   | "OPEN"
@@ -21,8 +25,6 @@ export type JobOptions = {
   skills: JobOption[];
   areas: JobOption[];
 };
-
-
 
 export type CustomerJob = {
   id: string;
@@ -122,8 +124,6 @@ export function normalizeJobOptions(value: unknown): JobOptions {
   };
 }
 
-
-
 export async function getJobOptions() {
   const result = await requestApi<unknown>("meta/options");
   return normalizeJobOptions(result);
@@ -170,15 +170,25 @@ export async function withdrawJobBid(jobId: string) {
 }
 
 export async function getCustomerJobBids(jobId: string, sort: string) {
-  return requestApi<{
+  const [job, bids] = await Promise.all([
+    getJob(jobId),
+    getJobBids(jobId, sort),
+  ]);
+  return {
     job: {
-      id: string;
-      status: JobStatus;
-      expiresAt: string;
-      bidCount: number;
-    };
-    bids: JobBid[];
-  }>(`jobs/${encodeURIComponent(jobId)}/bids?sort=${sort}`);
+      id: job.id,
+      status: job.status,
+      expiresAt: job.expiresAt ?? "",
+      bidCount: job.bidCount,
+    },
+    bids: bids.map((bid) => ({
+      ...bid,
+      technician: {
+        ...bid.technician,
+        isAvailableNow: false,
+      },
+    })) as JobBid[],
+  };
 }
 
 export type { PageMeta };

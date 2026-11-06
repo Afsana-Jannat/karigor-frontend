@@ -5,6 +5,8 @@ export type SignedInUser = {
   name: string;
   phone?: string;
   role: "CUSTOMER" | "TECHNICIAN" | "ADMIN";
+  technician?: { hasProfile: boolean; verifyStatus: string } | null;
+  unreadNotifications?: number;
 };
 
 function describeCurrentUserShape(value: unknown) {
@@ -91,11 +93,25 @@ function normalizeCurrentUser(value: unknown): SignedInUser {
   }
 
   throw new Error(
-    `ব্যাকএন্ডের auth/check-auth response-এ user-এর id, name ও role পাওয়া যায়নি। (${describeCurrentUserShape(value)})`,
+    `ব্যাকএন্ডের auth/me response-এ user-এর id, name ও role পাওয়া যায়নি। (${describeCurrentUserShape(value)})`,
   );
 }
 
 export async function getCurrentUser() {
-  const result = await requestApi<unknown>("auth/check-auth");
+  const result = await requestApi<unknown>("auth/me");
+  if (result && typeof result === "object" && "user" in result) {
+    const response = result as {
+      user: unknown;
+      technician?: SignedInUser["technician"];
+      unreadNotifications?: number;
+      unreadCount?: number;
+    };
+    return {
+      ...normalizeCurrentUser(response.user),
+      technician: response.technician ?? null,
+      unreadNotifications:
+        response.unreadNotifications ?? response.unreadCount ?? 0,
+    };
+  }
   return normalizeCurrentUser(result);
 }

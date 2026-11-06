@@ -20,6 +20,7 @@ import type { SignedInUser } from "@/features/auth/current-user";
 import { getApiErrorMessage } from "@/lib/apiClient";
 import { logoutAccount } from "@/lib/auth";
 import { sessionKey, useSession } from "@/lib/session/use-session";
+import NotificationBell from "./notification-bell";
 
 const sectionLinks = [
   { id: "services", label: "সার্ভিস" },
@@ -30,9 +31,9 @@ const sectionLinks = [
 const mainLinks = [
   { href: "/", label: "হোম" },
   { href: "/dashboard", label: "ড্যাশবোর্ড" },
-  {href: "/technicians", label:"কারিগর খুঁজুন"},
-  {href:"/jobs/open", label:"খোলা কাজ"},
-  {href:"/bids", label:"আমার প্রস্তাব"},
+  { href: "/technicians", label: "কারিগর খুঁজুন" },
+  { href: "/jobs/open", label: "খোলা কাজ" },
+  { href: "/bids", label: "আমার প্রস্তাব" },
   { href: "/about-us", label: "আমাদের সম্পর্কে" },
 ];
 
@@ -180,6 +181,28 @@ export default function SiteHeader() {
                   </span>
                 </span>
               </Link>
+              <Link
+                href="/account"
+                className="rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                অ্যাকাউন্ট
+              </Link>
+              {user.role === "TECHNICIAN" ? (
+                <Link
+                  href="/technician/cv-summary"
+                  className="rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+                >
+                  সিভি পরিচিতি
+                </Link>
+              ) : null}
+              {user.role === "ADMIN" ? (
+                <Link
+                  href="/admin"
+                  className="rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+                >
+                  অ্যাডমিন
+                </Link>
+              ) : null}
               {user.role === "CUSTOMER" && (
                 <Link
                   href="/jobs/new"
@@ -189,7 +212,7 @@ export default function SiteHeader() {
                   কাজ পোস্ট
                 </Link>
               )}
-              {/* NotificationBell goes here */}
+              <NotificationBell />
               <button
                 type="button"
                 onClick={handleLogout}
@@ -267,6 +290,34 @@ export default function SiteHeader() {
                       </span>
                     </span>
                   </Link>
+                  <Link
+                    href="/account"
+                    onClick={closeMenu}
+                    className="rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+                  >
+                    অ্যাকাউন্ট সেটিংস
+                  </Link>
+                  {user.role === "TECHNICIAN" ? (
+                    <Link
+                      href="/technician/cv-summary"
+                      onClick={closeMenu}
+                      className="rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+                    >
+                      সিভি পরিচিতি
+                    </Link>
+                  ) : null}
+                  {user.role === "ADMIN" ? (
+                    <Link
+                      href="/admin"
+                      onClick={closeMenu}
+                      className="rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+                    >
+                      অ্যাডমিন ড্যাশবোর্ড
+                    </Link>
+                  ) : null}
+                  <div className="px-3 py-2">
+                    <NotificationBell />
+                  </div>
                   {user.role === "CUSTOMER" && (
                     <Link
                       href="/jobs/new"
