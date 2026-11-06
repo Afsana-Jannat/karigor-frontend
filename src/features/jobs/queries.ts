@@ -1,15 +1,26 @@
-'use client';
+"use client";
 
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import { getErrorMessage } from '@/lib/apiClient';
-import { cancelJob, completeJob, createJob, getJob, getMyJobs, getOpenJobs } from './api';
-import { jobKeys } from './keys';
-import type { JobListFilters } from './types';
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { toast } from "sonner";
+import { getErrorMessage } from "@/lib/apiClient";
+import {
+  createJob,
+  getMyJobs,
+  getOpenJobs,
+  submitBid,
+  withdrawBid,
+} from "./api";
+import { jobKeys } from "./keys";
+import type { CreateBidInput, JobListFilters } from "./types";
 
 // Keys owned by other people. We only invalidate them, we never read them.
-const technicianKey = ['technician'] as const;
-const notificationKey = ['notifications'] as const;
+const technicianKey = ["technician"] as const;
+const notificationKey = ["notifications"] as const;
 
 /** My jobs list. Keeps the old page on screen while the next page loads. */
 export const useMyJobs = (filters: JobListFilters) =>
@@ -20,24 +31,15 @@ export const useMyJobs = (filters: JobListFilters) =>
   });
 
 /** Technician open jobs feed. Refetches every 60 seconds. */
-export const useOpenJobs = (filters: { page?: number; pageSize?: number } = {}) =>
+export const useOpenJobs = (
+  filters: { page?: number; pageSize?: number } = {},
+) =>
   useQuery({
     queryKey: jobKeys.open(filters),
     queryFn: () => getOpenJobs(filters),
     placeholderData: keepPreviousData,
     refetchInterval: 60_000,
     retry: false,
-  });
-
-/** One job. Afsana and Samir reuse this. Refetches every 20 seconds until the job is finished. */
-export const useJob = (id: string) =>
-  useQuery({
-    queryKey: jobKeys.detail(id),
-    queryFn: () => getJob(id),
-    refetchInterval: (query) => {
-      const status = query.state.data?.job.status;
-      return status === 'COMPLETED' || status === 'CANCELLED' ? false : 20_000;
-    },
   });
 
 function useInvalidateJobs() {
@@ -58,26 +60,26 @@ export const useCreateJob = () => {
   });
 };
 
-export const useCancelJob = (jobId: string) => {
+export const useSubmitBid = () => {
   const invalidate = useInvalidateJobs();
   return useMutation({
-    mutationFn: (reason?: string) => cancelJob(jobId, reason),
+    mutationFn: ({ jobId, input }: { jobId: string; input: CreateBidInput }) =>
+      submitBid(jobId, input),
     onSuccess: () => {
       invalidate();
-      toast.success('কাজটি বাতিল করা হয়েছে');
+      toast.success("আপনার প্রস্তাব পাঠানো হয়েছে");
     },
-    onError: (e) => toast.error(getErrorMessage(e)),
   });
 };
 
-export const useCompleteJob = (jobId: string) => {
+export const useWithdrawBid = () => {
   const invalidate = useInvalidateJobs();
   return useMutation({
-    mutationFn: () => completeJob(jobId),
+    mutationFn: withdrawBid,
     onSuccess: () => {
       invalidate();
-      toast.success('কাজ শেষ হয়েছে বলে জানানো হয়েছে');
+      toast.success("আপনার প্রস্তাব প্রত্যাহার করা হয়েছে");
     },
-    onError: (e) => toast.error(getErrorMessage(e)),
+    onError: (error) => toast.error(getErrorMessage(error)),
   });
 };

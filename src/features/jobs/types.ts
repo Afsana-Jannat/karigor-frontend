@@ -2,13 +2,13 @@
 // (verify) = check the real response in Postman before trusting the type.
 
 export type JobStatus =
-  | 'OPEN'
-  | 'CONTRACT_PENDING'
-  | 'IN_PROGRESS'
-  | 'AWAITING_CONFIRMATION'
-  | 'COMPLETED'
-  | 'CANCELLED'
-  | 'DISPUTED';
+  | "OPEN"
+  | "CONTRACT_PENDING"
+  | "IN_PROGRESS"
+  | "AWAITING_CONFIRMATION"
+  | "COMPLETED"
+  | "CANCELLED"
+  | "DISPUTED";
 
 export type Counterpart = { id: string; name: string };
 
@@ -27,7 +27,7 @@ export type JobListItem = {
 };
 
 export type JobListFilters = {
-  status?: JobStatus | '';
+  status?: JobStatus | "";
   page?: number;
   pageSize?: number;
 };
@@ -43,7 +43,25 @@ export type OpenJobItem = {
   expiresAt: string;
   bidCount: number;
   customerName: string;
-  myBid: { price: number; status: string } | null;
+  myBid: { price: number; status: BidStatus } | null;
+};
+
+export type BidStatus = "ACTIVE" | "SELECTED" | "REJECTED" | "WITHDRAWN";
+
+export type CreateBidInput = {
+  price: number;
+  note?: string;
+};
+
+export type Bid = {
+  id: string;
+  jobId: string;
+  technicianId: string;
+  price: number;
+  note: string | null;
+  status: BidStatus;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type CreateJobInput = {
@@ -59,25 +77,4 @@ export type CreateJobInput = {
 export type CreateJobResult = {
   job: { id: string } & Partial<JobListItem>;
   notifiedCount: number;
-};
-
-/** GET /jobs/:id is a Phase 2 endpoint. (verify) every field in Postman. */
-export type JobDetail = {
-  job: {
-    id: string;
-    skill: string;
-    area: string;
-    description: string;
-    status: JobStatus;
-    preferredDate: string;
-    agreedPrice: number | null;
-    isEmergency?: boolean;
-    cancelReason?: string | null;
-    expiresAt?: string;
-    createdAt?: string;
-  };
-  contract?: unknown;
-  payment?: unknown;
-  allowedActions: string[];
-  counterpart?: { id?: string; name: string; phone?: string } | null;
 };

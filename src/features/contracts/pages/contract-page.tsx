@@ -7,8 +7,6 @@ import { ErrorState } from "@/components/shared/error-state";
 import { LoadingState } from "@/components/shared/loading-state";
 import { PageContainer } from "@/components/shared/page-container";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { PhoneLink } from "@/features/jobs/components/phone-link";
-import { useJob } from "@/features/jobs/queries";
 import { getApiErrorStatus } from "@/lib/apiClient";
 import { useSession } from "@/lib/session/use-session";
 import { ContractDocument } from "../components/contract-document";
@@ -20,19 +18,6 @@ type ContractPageProps = {
   /** The JOB id from the URL. The contract id comes from the response. */
   jobId: string;
 };
-
-// The phone comes from the job, and the backend sends it only after both
-// parties signed. If it is missing, or the job request fails, show nothing.
-function CounterpartPhone({ jobId }: { jobId: string }) {
-  const { data } = useJob(jobId);
-  const counterpart = data?.counterpart;
-  if (!counterpart?.phone) return null;
-  return (
-    <p className="mt-3 text-sm text-slate-600">
-      {counterpart.name}: <PhoneLink phone={counterpart.phone} />
-    </p>
-  );
-}
 
 /** Contract and signing: /jobs/[id]/contract. */
 export default function ContractPage({ jobId }: ContractPageProps) {
@@ -62,7 +47,7 @@ export default function ContractPage({ jobId }: ContractPageProps) {
           action={
             <Link
               href="/jobs"
-              className={buttonVariants({ variant: "brand", size: "xl" })}
+              className={buttonVariants({ variant: "brand", size: "lg" })}
             >
               আমার কাজগুলো
             </Link>
@@ -93,15 +78,15 @@ export default function ContractPage({ jobId }: ContractPageProps) {
     <PageContainer narrow>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3 print:hidden">
         <Link
-          href={`/jobs/${jobId}`}
+          href="/jobs"
           className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-brand"
         >
-          <ArrowLeft className="size-4" aria-hidden="true" /> কাজে ফিরে যান
+          <ArrowLeft className="size-4" aria-hidden="true" /> আমার কাজগুলো
         </Link>
         <Button
           type="button"
           variant="outline"
-          size="xl"
+          size="lg"
           onClick={() => window.print()}
         >
           <Printer aria-hidden="true" /> চুক্তি ছাপুন
@@ -126,7 +111,6 @@ export default function ContractPage({ jobId }: ContractPageProps) {
         {contract.status === "SIGNED" ? (
           <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 print:hidden">
             <output>দুজনেই স্বাক্ষর করেছেন। কাজ শুরু করা যাবে।</output>
-            <CounterpartPhone jobId={jobId} />
           </div>
         ) : null}
 

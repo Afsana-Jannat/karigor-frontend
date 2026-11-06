@@ -7,7 +7,6 @@ import {
   TriangleAlert,
   UserRound,
 } from "lucide-react";
-import type { ReactNode } from "react";
 import { AppCard } from "@/components/shared/app-card";
 import { Money } from "@/components/shared/money";
 import { StatusBadge } from "@/components/shared/status-badge";
@@ -15,17 +14,11 @@ import { useMetaOptions } from "@/features/meta";
 import { formatDate, formatNumber, formatRelative } from "@/lib/format";
 import { bidStatusLabels } from "@/lib/labels";
 import type { OpenJobItem } from "../types";
+import { BidForm } from "./bid-form";
 
-type OpenJobCardProps = {
-  job: OpenJobItem;
-  /**
-   * Where Samir's <PlaceBidForm> goes. Until it is merged the page passes a
-   * placeholder here, so this card never imports another person's feature.
-   */
-  bidSlot?: ReactNode;
-};
+type OpenJobCardProps = { job: OpenJobItem };
 
-export function OpenJobCard({ job, bidSlot }: OpenJobCardProps) {
+export function OpenJobCard({ job }: OpenJobCardProps) {
   const { skillName, areaName } = useMetaOptions();
 
   return (
@@ -80,7 +73,9 @@ export function OpenJobCard({ job, bidSlot }: OpenJobCardProps) {
         ) : null}
       </div>
 
-      {bidSlot ? <div className="mt-4">{bidSlot}</div> : null}
+      <div className="mt-4 border-t border-slate-100 pt-4">
+        <BidForm jobId={job.id} myBid={job.myBid} />
+      </div>
     </AppCard>
   );
 }

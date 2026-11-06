@@ -1,33 +1,33 @@
-'use client';
+"use client";
 
-import { CalendarDays, MapPin, UserRound } from 'lucide-react';
-import Link from 'next/link';
-import { AppCard } from '@/components/shared/app-card';
-import { Money } from '@/components/shared/money';
-import { StatusBadge } from '@/components/shared/status-badge';
-import { useMetaOptions } from '@/features/meta';
-import { formatDate, formatNumber } from '@/lib/format';
-import { jobStatusLabels } from '@/lib/labels';
-import type { JobListItem } from '../types';
+import { CalendarDays, MapPin, UserRound } from "lucide-react";
+import Link from "next/link";
+import { AppCard } from "@/components/shared/app-card";
+import { Money } from "@/components/shared/money";
+import { StatusBadge } from "@/components/shared/status-badge";
+import { buttonVariants } from "@/components/ui/button";
+import { useMetaOptions } from "@/features/meta";
+import { formatDate, formatNumber } from "@/lib/format";
+import { jobStatusLabels } from "@/lib/labels";
+import type { JobListItem } from "../types";
 
-type JobCardProps = { job: JobListItem };
+type JobCardProps = { job: JobListItem; isCustomer: boolean };
 
-export function JobCard({ job }: JobCardProps) {
+export function JobCard({ job, isCustomer }: JobCardProps) {
   const { skillName, areaName } = useMetaOptions();
+  const canViewBids = isCustomer && job.status === "OPEN";
+  const hasContract = [
+    "CONTRACT_PENDING",
+    "IN_PROGRESS",
+    "AWAITING_CONFIRMATION",
+    "COMPLETED",
+    "DISPUTED",
+  ].includes(job.status);
 
   return (
-    // The whole card opens the job. The title link stretches over the card,
-    // and the bids link sits above it, so we never nest one link in another.
-    <AppCard interactive className="relative">
+    <AppCard>
       <div className="flex items-start justify-between gap-3">
-        <h2 className="text-lg font-bold text-brand">
-          <Link
-            href={`/jobs/${job.id}`}
-            className="after:absolute after:inset-0 after:rounded-3xl"
-          >
-            {skillName(job.skill)}
-          </Link>
-        </h2>
+        <h2 className="text-lg font-bold text-brand">{skillName(job.skill)}</h2>
         <StatusBadge labels={jobStatusLabels} status={job.status} />
       </div>
 
@@ -57,16 +57,20 @@ export function JobCard({ job }: JobCardProps) {
         </p>
       ) : null}
 
-      {job.status === 'OPEN' ? (
-        <div className="relative z-10 mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
-          <span className="text-sm text-slate-600">
-            {formatNumber(job.bidCount ?? 0)}টি প্রস্তাব
-          </span>
+      {canViewBids || hasContract ? (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
+          {canViewBids ? (
+            <span className="text-sm text-slate-600">
+              {formatNumber(job.bidCount ?? 0)}টি প্রস্তাব
+            </span>
+          ) : null}
           <Link
-            href={`/jobs/${job.id}/bids`}
-            className="inline-flex min-h-11 items-center text-sm font-bold text-accent hover:text-accent-dark"
+            href={
+              canViewBids ? `/jobs/${job.id}/bids` : `/jobs/${job.id}/contract`
+            }
+            className={buttonVariants({ variant: "accent", size: "default" })}
           >
-            প্রস্তাব দেখুন
+            {canViewBids ? "প্রস্তাব দেখুন" : "চুক্তি দেখুন"}
           </Link>
         </div>
       ) : null}

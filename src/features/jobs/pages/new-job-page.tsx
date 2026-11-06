@@ -101,7 +101,7 @@ export default function NewJobPage() {
           action={
             <Link
               href="/jobs/open"
-              className={buttonVariants({ variant: "accent", size: "xl" })}
+              className={buttonVariants({ variant: "accent", size: "default" })}
             >
               খোলা কাজ দেখুন
             </Link>
@@ -130,10 +130,10 @@ export default function NewJobPage() {
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
             <Link
-              href={`/jobs/${job.id}`}
-              className={buttonVariants({ variant: "accent", size: "xl" })}
+              href={`/jobs/${job.id}/bids`}
+              className={buttonVariants({ variant: "accent", size: "default" })}
             >
-              কাজটি দেখুন <ArrowRight aria-hidden="true" />
+              প্রস্তাব দেখুন <ArrowRight aria-hidden="true" />
             </Link>
             <Link
               href="/jobs"
@@ -162,14 +162,6 @@ export default function NewJobPage() {
           title="আপনার কী কাজ দরকার?"
           description="কাজের তথ্য দিন। আগ্রহী কারিগররা আপনাকে মূল্যসহ প্রস্তাব পাঠাবেন।"
         />
-
-        {/* TODO(Samir): put <SmartJobSearchBox mode="job" /> here when
-            features/search is merged. Its result should fill skill, area,
-            isEmergency, and the description only while it is still empty
-            (form.setFieldValue). */}
-        <p className="mb-6 rounded-xl border border-dashed border-slate-300 px-4 py-3 text-center text-sm text-slate-500">
-          স্মার্ট সার্চ বক্স এখানে বসবে (Samir)
-        </p>
 
         {createJob.isError ? (
           <div className="mb-5">
@@ -313,7 +305,7 @@ export default function NewJobPage() {
           <Button
             type="submit"
             variant="accent"
-            size="xl"
+            size="default"
             disabled={createJob.isPending}
             className="w-full"
           >

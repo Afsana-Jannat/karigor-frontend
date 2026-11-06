@@ -35,7 +35,7 @@ export function SelectBidButton({
       <Button
         type="button"
         variant="accent"
-        size="xl"
+        size="lg"
         onClick={() => {
           selectBid.reset();
           setOpen(true);

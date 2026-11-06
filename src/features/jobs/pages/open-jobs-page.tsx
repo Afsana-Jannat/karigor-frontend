@@ -78,18 +78,7 @@ export default function OpenJobsPage() {
         <>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {data.items.map((job) => (
-              <OpenJobCard
-                key={job.id}
-                job={job}
-                // TODO(Samir): replace this placeholder with
-                // <PlaceBidForm jobId={job.id} myBid={job.myBid} /> and
-                // <WithdrawBidButton /> once features/bids is merged.
-                bidSlot={
-                  <p className="rounded-xl border border-dashed border-slate-300 px-3 py-2 text-center text-xs text-slate-500">
-                    প্রস্তাব দেওয়ার ফর্ম এখানে বসবে (Samir)
-                  </p>
-                }
-              />
+              <OpenJobCard key={job.id} job={job} />
             ))}
           </div>
           <Pagination meta={data.meta} onPageChange={changePage} />

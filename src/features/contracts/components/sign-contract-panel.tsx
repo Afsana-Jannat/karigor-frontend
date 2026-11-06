@@ -101,7 +101,7 @@ export function SignContractPanel({ contractId }: SignContractPanelProps) {
         <Button
           type="button"
           variant="accent"
-          size="xl"
+          size="lg"
           disabled={requestOtp.isPending}
           onClick={sendCode}
           className="mt-5 w-full sm:w-auto"
@@ -172,7 +172,7 @@ export function SignContractPanel({ contractId }: SignContractPanelProps) {
             <Button
               type="submit"
               variant="accent"
-              size="xl"
+              size="lg"
               disabled={sign.isPending}
             >
               {sign.isPending ? (
@@ -184,7 +184,7 @@ export function SignContractPanel({ contractId }: SignContractPanelProps) {
             <Button
               type="button"
               variant="outline"
-              size="xl"
+              size="lg"
               disabled={secondsLeft > 0 || requestOtp.isPending}
               onClick={sendCode}
             >
