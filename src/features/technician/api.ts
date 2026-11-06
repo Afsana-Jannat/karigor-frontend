@@ -31,12 +31,15 @@ export async function setAvailability(
 }
 
 export async function submitVerification(input: {
-  photoUrl: string;
-  nidPublicId: string;
+  photo: File;
+  nid: File;
 }): Promise<{ verifyStatus: string }> {
+  const form = new FormData();
+  form.append("photo", input.photo);
+  form.append("nid", input.nid);
   return requestApi("technicians/me/verification", {
     method: "POST",
-    body: input,
+    body: form,
   });
 }
 

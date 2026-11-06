@@ -98,7 +98,7 @@ function normalizeCurrentUser(value: unknown): SignedInUser {
 }
 
 export async function getCurrentUser() {
-  const result = await requestApi<unknown>("auth/me");
+  const result = await requestApi<unknown>("auth/check-auth");
   if (result && typeof result === "object" && "user" in result) {
     const response = result as {
       user: unknown;

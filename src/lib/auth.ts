@@ -1,4 +1,4 @@
-import { requestApi } from "./apiClient";
+import { requestApi, setAccessToken } from "./apiClient";
 
 export type UserRole = "CUSTOMER" | "TECHNICIAN";
 
@@ -8,15 +8,9 @@ type OtpRequestResult = {
   devCode?: string;
 };
 
-type RegistrationVerificationResult = {
+export type RegistrationVerificationResult = {
   verified: boolean;
-  user: {
-    id: string;
-    name: string;
-    phone: string;
-    role: UserRole;
-  };
-  technician: { hasProfile: boolean; verifyStatus: string } | null;
+  message: string;
 };
 
 export type LoginResult = {
@@ -26,7 +20,8 @@ export type LoginResult = {
     phone: string;
     role: UserRole | "ADMIN";
   };
-  technician: { hasProfile: boolean; verifyStatus: string } | null;
+  accessToken: string;
+  refreshToken?: string;
 };
 
 export function registerAccount(input: {
@@ -41,27 +36,31 @@ export function registerAccount(input: {
 }
 
 export function requestLoginOtp(phone: string) {
-  return requestApi<OtpRequestResult>("auth/login", {
+  return requestApi<OtpRequestResult>("auth/login/request-otp", {
     method: "POST",
     body: { phone },
   });
 }
 
-export function verifyAccountOtp(phone: string, code: string) {
-  return requestApi<LoginResult & Partial<RegistrationVerificationResult>>(
-    "auth/verify-otp",
-    {
-      method: "POST",
-      body: { phone, code },
-    },
-  );
+export function verifyRegistrationOtp(phone: string, otp: string) {
+  return requestApi<RegistrationVerificationResult>("auth/verify-otp", {
+    method: "POST",
+    body: { phone, otp },
+  });
 }
 
-export const verifyRegistrationOtp = verifyAccountOtp;
-export const verifyLoginOtp = verifyAccountOtp;
-
-export function logoutAccount(allDevices = false) {
-  return requestApi<unknown>(allDevices ? "auth/logout-all" : "auth/logout", {
+export function verifyLoginOtp(phone: string, otp: string) {
+  return requestApi<LoginResult>("auth/login/verify-otp", {
     method: "POST",
+    body: { phone, otp },
+  }).then((result) => {
+    setAccessToken(result.accessToken);
+    return result;
   });
+}
+
+export function logoutAccount() {
+  return requestApi<unknown>("auth/logout", {
+    method: "POST",
+  }).finally(() => setAccessToken(null));
 }

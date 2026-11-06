@@ -1,4 +1,8 @@
-import { requestApi, requestApiPage } from "@/lib/apiClient";
+import {
+  requestApi,
+  requestApiPage,
+  requestApiWithMeta,
+} from "@/lib/apiClient";
 
 export type PublicTechnician = {
   id: string;
@@ -71,9 +75,17 @@ export const getPublicTechnician = (id: string) =>
   requestApi<PublicTechnicianProfile>(`technicians/${encodeURIComponent(id)}`);
 
 export const getTechnicianReviews = (id: string, page = 1, rating?: number) =>
-  requestApi<TechnicianReviews>(
+  requestApiWithMeta<Omit<TechnicianReviews, "meta">>(
     `technicians/${encodeURIComponent(id)}/reviews${queryString({ page, pageSize: 10, rating })}`,
-  );
+  ).then(({ data, meta }) => ({
+    ...data,
+    meta: meta ?? {
+      page,
+      pageSize: 10,
+      total: data.reviews.length,
+      totalPages: 1,
+    },
+  }));
 
 export const parseSearchQuery = (query: string) =>
   requestApi<{

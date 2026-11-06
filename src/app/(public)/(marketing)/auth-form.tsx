@@ -13,12 +13,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
-import { getApiErrorMessage, getErrorMessage } from "@/lib/apiClient";
+import { getMyProfile } from "@/features/technician/api";
+import { ApiError, getApiErrorMessage, getErrorMessage } from "@/lib/apiClient";
 import {
   registerAccount,
   requestLoginOtp,
   type UserRole,
-  verifyAccountOtp,
+  verifyLoginOtp,
+  verifyRegistrationOtp,
 } from "@/lib/auth";
 import { toAsciiDigits } from "@/lib/format";
 import { sessionKey } from "@/lib/session/use-session";
@@ -126,20 +128,44 @@ export default function AuthForm({ mode }: { mode: AuthMode }) {
 
     setIsSubmitting(true);
     try {
-      const loginResult = await verifyAccountOtp(phone, otp);
       toast.dismiss("demo-otp");
+      if (isRegister) {
+        await verifyRegistrationOtp(phone, otp);
+        toast.success("নম্বর যাচাই হয়েছে। এখন লগইন করুন।");
+        router.replace("/login?registered=1");
+        router.refresh();
+        return;
+      }
+
+      const loginResult = await verifyLoginOtp(phone, otp);
+      let technician: { hasProfile: boolean; verifyStatus: string } | null =
+        null;
+      if (loginResult.user.role === "TECHNICIAN") {
+        try {
+          const profile = await getMyProfile();
+          technician = {
+            hasProfile: true,
+            verifyStatus: profile.verifyStatus,
+          };
+        } catch (profileError) {
+          if (
+            !(profileError instanceof ApiError) ||
+            profileError.status !== 404
+          ) {
+            throw profileError;
+          }
+          technician = { hasProfile: false, verifyStatus: "NONE" };
+        }
+      }
       queryClient.setQueryData(sessionKey, {
         ...loginResult.user,
-        technician: loginResult.technician,
+        technician,
       });
 
       const next = new URLSearchParams(window.location.search).get("next");
       const safeNext =
         next?.startsWith("/") && !next.startsWith("//") ? next : null;
-      if (
-        loginResult.user.role === "TECHNICIAN" &&
-        !loginResult.technician?.hasProfile
-      ) {
+      if (loginResult.user.role === "TECHNICIAN" && !technician?.hasProfile) {
         router.replace("/technician/onboarding");
       } else {
         router.replace(safeNext ?? "/dashboard");

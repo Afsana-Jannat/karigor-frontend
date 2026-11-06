@@ -5,45 +5,8 @@ import { type FormEvent, useState } from "react";
 import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
-import { requestUploadSignature } from "@/features/workflow/api";
 import { getErrorMessage } from "@/lib/apiClient";
 import { useMyProfile, useSubmitVerification } from "../queries";
-
-type CloudinaryAsset = { secure_url: string; public_id: string };
-
-async function uploadPrivateAsset(
-  file: File,
-  purpose: "PHOTO" | "NID",
-): Promise<CloudinaryAsset> {
-  const signature = await requestUploadSignature(purpose);
-  if (file.size > signature.maxBytes) {
-    throw new Error("ছবির আকার সর্বোচ্চ ২ MB হতে পারে।");
-  }
-  const extension = file.name.split(".").pop()?.toLowerCase();
-  if (!extension || !signature.allowedFormats.includes(extension)) {
-    throw new Error("JPG, PNG বা WEBP ফাইল দিন।");
-  }
-
-  const form = new FormData();
-  form.append("file", file);
-  form.append("api_key", signature.apiKey);
-  form.append("timestamp", String(signature.timestamp));
-  form.append("signature", signature.signature);
-  form.append("folder", signature.folder);
-  form.append("type", signature.type);
-  const response = await fetch(signature.uploadUrl, {
-    method: "POST",
-    body: form,
-  });
-  if (!response.ok) {
-    throw new Error("ছবি আপলোড করা যায়নি। ফাইল পরীক্ষা করে আবার চেষ্টা করুন।");
-  }
-  const asset = (await response.json()) as Partial<CloudinaryAsset>;
-  if (!asset.secure_url || !asset.public_id) {
-    throw new Error("আপলোড সার্ভার থেকে ছবির পরিচিতি পাওয়া যায়নি।");
-  }
-  return { secure_url: asset.secure_url, public_id: asset.public_id };
-}
 
 export default function TechnicianVerificationPage() {
   const profile = useMyProfile();
@@ -60,14 +23,13 @@ export default function TechnicianVerificationPage() {
       setError("প্রোফাইল ছবি এবং এনআইডির ছবি—দুটিই নির্বাচন করুন।");
       return;
     }
+    if (photo.size > 2 * 1024 * 1024 || nid.size > 2 * 1024 * 1024) {
+      setError("প্রতিটি ছবির আকার সর্বোচ্চ ২ MB হতে পারে।");
+      return;
+    }
     setUploading(true);
     try {
-      const photoAsset = await uploadPrivateAsset(photo, "PHOTO");
-      const nidAsset = await uploadPrivateAsset(nid, "NID");
-      await submit.mutateAsync({
-        photoUrl: photoAsset.secure_url,
-        nidPublicId: nidAsset.public_id,
-      });
+      await submit.mutateAsync({ photo, nid });
     } catch (uploadError) {
       setError(getErrorMessage(uploadError));
     } finally {

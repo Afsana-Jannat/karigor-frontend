@@ -101,22 +101,6 @@ export const deleteMyAccount = () =>
     body: { confirm: "DELETE" },
   });
 
-export const requestUploadSignature = (purpose: "PHOTO" | "NID") =>
-  requestApi<{
-    cloudName: string;
-    apiKey: string;
-    timestamp: number;
-    signature: string;
-    folder: string;
-    type: "upload" | "authenticated";
-    uploadUrl: string;
-    maxBytes: number;
-    allowedFormats: string[];
-  }>("uploads/sign", {
-    method: "POST",
-    body: { purpose },
-  });
-
 export const generateCvSummary = (language: "bn" | "en" | "both" = "both") =>
   requestApi<{ suggestion: { bn?: string; en?: string }; usedAi: boolean }>(
     "technicians/me/cv-summary",

@@ -31,7 +31,7 @@ function AccountContent() {
     setLoggingOut(true);
     setError("");
     try {
-      await logoutAccount(true);
+      await logoutAccount();
       qc.clear();
       qc.setQueryData(sessionKey, null);
       router.replace("/");
@@ -116,7 +116,7 @@ function AccountContent() {
       <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-5 sm:p-7">
         <h2 className="font-bold text-brand">নিরাপত্তা</h2>
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          সব ডিভাইস থেকে লগআউট করলে আপনার আগের সব সেশন বন্ধ হবে।
+          এই ডিভাইসের বর্তমান সেশন বন্ধ হবে।
         </p>
         <Button
           className="mt-4"
@@ -124,7 +124,7 @@ function AccountContent() {
           disabled={loggingOut}
           onClick={logoutEverywhere}
         >
-          <LogOut /> সব ডিভাইস থেকে লগআউট
+          <LogOut /> এই ডিভাইস থেকে লগআউট
         </Button>
       </section>
 
