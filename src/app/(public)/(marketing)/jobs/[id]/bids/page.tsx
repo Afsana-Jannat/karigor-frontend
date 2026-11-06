@@ -9,11 +9,9 @@ type JobBidsPageProps = {
 
 export default function JobBidsPage({ params }: JobBidsPageProps) {
   return (
-    <RequireAuth roles={["CUSTOMER"]}>
-      <Suspense fallback={<LoadingState />}>
-        <ResolvedBidsPage params={params} />
-      </Suspense>
-    </RequireAuth>
+    <Suspense fallback={<LoadingState />}>
+      <ResolvedBidsPage params={params} />
+    </Suspense>
   );
 }
 
@@ -22,5 +20,9 @@ async function ResolvedBidsPage({ params }: JobBidsPageProps) {
   // TODO(Samir): when features/bids is merged, replace the body of
   // BidsPageClient with <BidComparisonList jobId={id} canSelect /> and pass
   // <SelectBidButton /> from features/contracts as its select action.
-  return <BidsPageClient jobId={id} />;
+  return (
+    <RequireAuth roles={["CUSTOMER"]}>
+      <BidsPageClient jobId={id} />
+    </RequireAuth>
+  );
 }

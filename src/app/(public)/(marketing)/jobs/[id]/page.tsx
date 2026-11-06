@@ -1,20 +1,25 @@
-import { RequireAuth } from "@/components/auth/require-auth";
-import JobDetailPage from "@/features/jobs/pages/job-detail-page";
 import { Suspense } from "react";
+import { RequireAuth } from "@/components/auth/require-auth";
+import { LoadingState } from "@/components/shared/loading-state";
+import JobDetailPage from "@/features/jobs/pages/job-detail-page";
 
-export default async function Page({
-  params,
-}: {
+type JobRouteProps = {
   params: Promise<{ id: string }>;
-}) {
+};
+
+export default function Page({ params }: JobRouteProps) {
+  return (
+    <Suspense fallback={<LoadingState />}>
+      <ResolvedPage params={params} />
+    </Suspense>
+  );
+}
+
+async function ResolvedPage({ params }: JobRouteProps) {
   const { id } = await params;
   return (
-    
     <RequireAuth roles={["CUSTOMER", "TECHNICIAN", "ADMIN"]}>
-      <Suspense>
-        <JobDetailPage jobId={id} />
-      </Suspense>
-      
+      <JobDetailPage jobId={id} />
     </RequireAuth>
   );
 }
