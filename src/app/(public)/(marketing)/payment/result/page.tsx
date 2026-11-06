@@ -51,15 +51,17 @@ function PaymentResultQuery({
               {payments.data.paid
                 ? `পেমেন্ট সফল হয়েছে · ${payments.data.method ?? "পরিশোধিত"} · ৳${payments.data.amountDue.toLocaleString("bn-BD")}`
                 : status === "cancel"
-                  ? "পেমেন্ট বাতিল হয়েছে। চাইলে আবার চেষ্টা করুন।"
+                  ? "পেমেন্ট বাতিল হয়েছে। bKash Transaction History-তে টাকা কাটা হয়নি নিশ্চিত হলে আবার চেষ্টা করতে পারেন।"
                   : status === "success"
-                    ? "পেমেন্ট যাচাই সম্পন্ন হয়নি। কাজের সর্বশেষ অবস্থা দেখুন বা আবার চেষ্টা করুন।"
-                    : "পেমেন্ট সম্পন্ন হয়নি। কাজের পাতায় গিয়ে অবস্থা যাচাই করুন।"}
+                    ? "bKash-এ সফল দেখালেও Karigor সার্ভার পেমেন্ট নিশ্চিত করতে পারেনি। আবার পেমেন্ট করবেন না; bKash Transaction History-তে লেনদেন যাচাই করে TrxID support/admin-কে দিন।"
+                    : status === "failure"
+                      ? "পেমেন্টের অবস্থা নিশ্চিত নয়। bKash Transaction History-তে টাকা কাটা হয়েছে কি না দেখুন। টাকা কাটা হয়ে থাকলে আবার পেমেন্ট করবেন না; TrxID support/admin-কে দিন।"
+                      : "সার্ভার পেমেন্ট নিশ্চিত করতে পারেনি। bKash Transaction History-তে লেনদেন যাচাই করে তারপর পরবর্তী পদক্ষেপ নিন।"}
             </p>
             <p className="mt-2 text-sm text-slate-500">
               {payments.data.paid
                 ? "পেমেন্টের অবস্থা সার্ভার থেকে নিশ্চিত করা হয়েছে।"
-                : `বকেয়া: ৳${payments.data.amountDue.toLocaleString("bn-BD")}`}
+                : `Karigor-এ বকেয়া দেখাচ্ছে: ৳${payments.data.amountDue.toLocaleString("bn-BD")}`}
             </p>
           </>
         )}
@@ -71,7 +73,7 @@ function PaymentResultQuery({
             >
               কাজের অবস্থা দেখুন
             </Link>
-            {!payments.data?.paid ? (
+            {!payments.data?.paid && status === "cancel" ? (
               <Link
                 href={`/jobs/${encodeURIComponent(jobId)}/payment`}
                 className="inline-flex min-h-11 items-center rounded-xl border border-slate-200 px-5 font-bold text-brand"
