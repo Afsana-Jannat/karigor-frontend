@@ -115,7 +115,7 @@ export const createJob = (input: CreateJobInput) =>
 
 /** PUT /jobs/:id/bid. Creates, edits, or reactivates the technician's bid. */
 export const submitBid = (jobId: string, input: CreateBidInput) =>
-  requestApi<Bid>(`jobs/${encodeURIComponent(jobId)}/bid`, {
+  requestApi<Bid>(`bids/${encodeURIComponent(jobId)}/bid`, {
     method: "PUT",
     body: input,
   });

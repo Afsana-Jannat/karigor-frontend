@@ -12,6 +12,7 @@ import { LoadingState } from "@/components/shared/loading-state";
 import { PageContainer } from "@/components/shared/page-container";
 import { PageHeader } from "@/components/shared/page-header";
 import { Pagination } from "@/components/shared/pagination";
+import { ChatWidget } from "@/features/chat/components/chat-widget";
 import { AreaSelect, SkillSelect, useMetaOptions } from "@/features/meta";
 import { parseSearchQuery } from "@/features/technician-public/api";
 import { useTechnicianSearch } from "@/features/technician-public/queries";
@@ -218,6 +219,7 @@ export default function TechniciansPage() {
           <Pagination meta={data.meta} onPageChange={setPage} />
         </>
       )}
+      <ChatWidget />
     </PageContainer>
   );
 }

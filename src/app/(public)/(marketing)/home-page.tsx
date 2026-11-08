@@ -22,7 +22,7 @@ import {
   Zap,
 } from "lucide-react";
 import Link from "next/link";
-
+import { ChatWidget } from "@/features/chat/components/chat-widget";
 
 const services = [
   {
@@ -522,6 +522,7 @@ export default function HomePage() {
           </p>
         </div>
       </footer>
+      <ChatWidget />
     </main>
   );
 }
